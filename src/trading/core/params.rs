@@ -96,12 +96,13 @@ impl PumpFunParams {
         Self {
             bonding_curve: Arc::new(BondingCurveAccount { ..Default::default() }),
             associated_bonding_curve: Pubkey::default(),
-            creator_vault: creator_vault,
-            token_program: token_program,
+            creator_vault,
+            token_program,
             close_token_account_when_sell: Some(close_token_account_when_sell),
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_dev_trade(
         mint: Pubkey,
         token_amount: u64,
@@ -125,13 +126,14 @@ impl PumpFunParams {
         );
         Self {
             bonding_curve: Arc::new(bonding_curve_account),
-            associated_bonding_curve: associated_bonding_curve,
-            creator_vault: creator_vault,
-            close_token_account_when_sell: close_token_account_when_sell,
-            token_program: token_program,
+            associated_bonding_curve,
+            creator_vault,
+            close_token_account_when_sell,
+            token_program,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_trade(
         bonding_curve: Pubkey,
         associated_bonding_curve: Pubkey,
@@ -159,10 +161,10 @@ impl PumpFunParams {
         );
         Self {
             bonding_curve: Arc::new(bonding_curve),
-            associated_bonding_curve: associated_bonding_curve,
-            creator_vault: creator_vault,
-            close_token_account_when_sell: close_token_account_when_sell,
-            token_program: token_program,
+            associated_bonding_curve,
+            creator_vault,
+            close_token_account_when_sell,
+            token_program,
         }
     }
 
@@ -172,7 +174,7 @@ impl PumpFunParams {
     ) -> Result<Self, anyhow::Error> {
         let account =
             crate::instruction::utils::pumpfun::fetch_bonding_curve_account(rpc, mint).await?;
-        let mint_account = rpc.get_account(&mint).await?;
+        let mint_account = rpc.get_account(mint).await?;
         let bonding_curve = BondingCurveAccount {
             discriminator: 0,
             account: account.1,
@@ -194,7 +196,7 @@ impl PumpFunParams {
             crate::instruction::utils::pumpfun::get_creator_vault_pda(&bonding_curve.creator);
         Ok(Self {
             bonding_curve: Arc::new(bonding_curve),
-            associated_bonding_curve: associated_bonding_curve,
+            associated_bonding_curve,
             creator_vault: creator_vault.unwrap(),
             close_token_account_when_sell: None,
             token_program: mint_account.owner,
@@ -241,6 +243,7 @@ pub struct PumpSwapParams {
 }
 
 impl PumpSwapParams {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         pool: Pubkey,
         base_mint: Pubkey,
@@ -285,7 +288,7 @@ impl PumpSwapParams {
         {
             Self::from_pool_address_by_rpc(rpc, &pool_address).await
         } else {
-            return Err(anyhow::anyhow!("No pool found for mint"));
+            Err(anyhow::anyhow!("No pool found for mint"))
         }
     }
 
@@ -305,26 +308,26 @@ impl PumpSwapParams {
             crate::instruction::utils::pumpswap::coin_creator_vault_authority(creator);
 
         let base_token_program_ata = get_associated_token_address_with_program_id(
-            &pool_address,
+            pool_address,
             &pool_data.base_mint,
             &crate::constants::TOKEN_PROGRAM,
         );
         let quote_token_program_ata = get_associated_token_address_with_program_id(
-            &pool_address,
+            pool_address,
             &pool_data.quote_mint,
             &crate::constants::TOKEN_PROGRAM,
         );
 
         Ok(Self {
-            pool: pool_address.clone(),
+            pool: *pool_address,
             base_mint: pool_data.base_mint,
             quote_mint: pool_data.quote_mint,
             pool_base_token_account: pool_data.pool_base_token_account,
             pool_quote_token_account: pool_data.pool_quote_token_account,
-            pool_base_token_reserves: pool_base_token_reserves,
-            pool_quote_token_reserves: pool_quote_token_reserves,
-            coin_creator_vault_ata: coin_creator_vault_ata,
-            coin_creator_vault_authority: coin_creator_vault_authority,
+            pool_base_token_reserves,
+            pool_quote_token_reserves,
+            coin_creator_vault_ata,
+            coin_creator_vault_authority,
             base_token_program: if pool_data.pool_base_token_account == base_token_program_ata {
                 crate::constants::TOKEN_PROGRAM
             } else {
@@ -376,6 +379,7 @@ impl BonkParams {
             ..Default::default()
         }
     }
+    #[allow(clippy::too_many_arguments)]
     pub fn from_trade(
         virtual_base: u64,
         virtual_quote: u64,
@@ -395,17 +399,18 @@ impl BonkParams {
             virtual_quote: virtual_quote as u128,
             real_base: real_base_after as u128,
             real_quote: real_quote_after as u128,
-            pool_state: pool_state,
-            base_vault: base_vault,
-            quote_vault: quote_vault,
+            pool_state,
+            base_vault,
+            quote_vault,
             mint_token_program: base_token_program,
-            platform_config: platform_config,
-            platform_associated_account: platform_associated_account,
-            creator_associated_account: creator_associated_account,
-            global_config: global_config,
+            platform_config,
+            platform_associated_account,
+            creator_associated_account,
+            global_config,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_dev_trade(
         is_exact_in: bool,
         amount_in: u64,
@@ -461,16 +466,16 @@ impl BonkParams {
         Self {
             virtual_base: DEFAULT_VIRTUAL_BASE,
             virtual_quote: DEFAULT_VIRTUAL_QUOTE,
-            real_base: real_base,
-            real_quote: real_quote,
-            pool_state: pool_state,
-            base_vault: base_vault,
-            quote_vault: quote_vault,
+            real_base,
+            real_quote,
+            pool_state,
+            base_vault,
+            quote_vault,
             mint_token_program: base_token_program,
-            platform_config: platform_config,
-            platform_associated_account: platform_associated_account,
-            creator_associated_account: creator_associated_account,
-            global_config: global_config,
+            platform_config,
+            platform_associated_account,
+            creator_associated_account,
+            global_config,
         }
     }
 
@@ -545,6 +550,7 @@ pub struct RaydiumCpmmParams {
 }
 
 impl RaydiumCpmmParams {
+    #[allow(clippy::too_many_arguments)]
     pub fn from_trade(
         pool_state: Pubkey,
         amm_config: Pubkey,
@@ -559,17 +565,17 @@ impl RaydiumCpmmParams {
         quote_reserve: u64,
     ) -> Self {
         Self {
-            pool_state: pool_state,
-            amm_config: amm_config,
+            pool_state,
+            amm_config,
             base_mint: input_token_mint,
             quote_mint: output_token_mint,
-            base_reserve: base_reserve,
-            quote_reserve: quote_reserve,
+            base_reserve,
+            quote_reserve,
             base_vault: input_vault,
             quote_vault: output_vault,
             base_token_program: input_token_program,
             quote_token_program: output_token_program,
-            observation_state: observation_state,
+            observation_state,
         }
     }
 
@@ -588,7 +594,7 @@ impl RaydiumCpmmParams {
             )
             .await?;
         Ok(Self {
-            pool_state: pool_address.clone(),
+            pool_state: *pool_address,
             amm_config: pool.amm_config,
             base_mint: pool.token0_mint,
             quote_mint: pool.token1_mint,
@@ -695,7 +701,7 @@ impl MeteoraDammV2Params {
         let pool_data =
             crate::instruction::utils::meteora_damm_v2::fetch_pool(rpc, pool_address).await?;
         Ok(Self {
-            pool: pool_address.clone(),
+            pool: *pool_address,
             token_a_vault: pool_data.token_a_vault,
             token_b_vault: pool_data.token_b_vault,
             token_a_mint: pool_data.token_a_mint,

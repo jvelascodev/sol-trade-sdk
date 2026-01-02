@@ -1,0 +1,14 @@
+[package]
+name = "pumpfun_copy_trading_v2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sol-trade-sdk = { path = "../.." }
+solana-streamer-sdk = "0.5.0"
+solana-sdk = "3.0.0"
+solana-commitment-config = { version = "3.0.0", features = ["serde"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"

@@ -16,8 +16,8 @@ pub async fn get_multi_token_balances(
     token0_vault: &Pubkey,
     token1_vault: &Pubkey,
 ) -> Result<(u64, u64), anyhow::Error> {
-    let token0_balance = rpc.get_token_account_balance(&token0_vault).await?;
-    let token1_balance = rpc.get_token_account_balance(&token1_vault).await?;
+    let token0_balance = rpc.get_token_account_balance(token0_vault).await?;
+    let token1_balance = rpc.get_token_account_balance(token1_vault).await?;
     // Parse balance string to u64
     let token0_amount = token0_balance
         .amount

@@ -1,6 +1,6 @@
 use crate::{
     common::spl_token::close_account,
-    constants::{trade::trade::DEFAULT_SLIPPAGE, TOKEN_PROGRAM_2022},
+    constants::{trade::DEFAULT_SLIPPAGE, TOKEN_PROGRAM_2022},
     trading::core::{
         params::{PumpFunParams, SwapParams},
         traits::InstructionBuilder,

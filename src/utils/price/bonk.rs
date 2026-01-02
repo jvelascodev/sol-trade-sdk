@@ -55,7 +55,7 @@ pub fn price_base_in_quote(
     };
     // Calculate reserves state before price calculation
     let quote_reserves = virtual_quote.checked_add(real_quote).unwrap_or(0);
-    let base_reserves = virtual_base.checked_sub(real_base).unwrap_or(0);
+    let base_reserves = virtual_base.saturating_sub(real_base);
 
     if base_reserves == 0 {
         return 0.0;
@@ -66,7 +66,7 @@ pub fn price_base_in_quote(
     }
 
     // Use floating point calculation to avoid precision loss from integer division
-    let price = (quote_reserves as f64) / (base_reserves as f64) / decimal_factor;
+    
 
-    price
+    (quote_reserves as f64) / (base_reserves as f64) / decimal_factor
 }

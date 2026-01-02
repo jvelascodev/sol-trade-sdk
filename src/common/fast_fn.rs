@@ -299,8 +299,8 @@ pub fn fast_init(payer: &Pubkey) {
             vec![close_account(
                 &crate::constants::TOKEN_PROGRAM,
                 &wsol_token_account,
-                &payer,
-                &payer,
+                payer,
+                payer,
                 &[],
             )
             .unwrap()]

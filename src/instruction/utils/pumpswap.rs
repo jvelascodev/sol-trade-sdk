@@ -154,30 +154,28 @@ pub(crate) fn coin_creator_vault_authority(coin_creator: Pubkey) -> Pubkey {
 
 pub(crate) fn coin_creator_vault_ata(coin_creator: Pubkey, quote_mint: Pubkey) -> Pubkey {
     let creator_vault_authority = coin_creator_vault_authority(coin_creator);
-    let associated_token_creator_vault_authority = get_associated_token_address_with_program_id(
+
+    get_associated_token_address_with_program_id(
         &creator_vault_authority,
         &quote_mint,
         &TOKEN_PROGRAM,
-    );
-    associated_token_creator_vault_authority
+    )
 }
 
 pub(crate) fn fee_recipient_ata(fee_recipient: Pubkey, quote_mint: Pubkey) -> Pubkey {
-    let associated_token_fee_recipient =
-        crate::common::fast_fn::get_associated_token_address_with_program_id_fast(
-            &fee_recipient,
-            &quote_mint,
-            &TOKEN_PROGRAM,
-        );
-    associated_token_fee_recipient
+    crate::common::fast_fn::get_associated_token_address_with_program_id_fast(
+        &fee_recipient,
+        &quote_mint,
+        &TOKEN_PROGRAM,
+    )
 }
 
 pub fn get_user_volume_accumulator_pda(user: &Pubkey) -> Option<Pubkey> {
     crate::common::fast_fn::get_cached_pda(
         crate::common::fast_fn::PdaCacheKey::PumpSwapUserVolume(*user),
         || {
-            let seeds: &[&[u8]; 2] = &[&seeds::USER_VOLUME_ACCUMULATOR_SEED, user.as_ref()];
-            let program_id: &Pubkey = &&accounts::AMM_PROGRAM;
+            let seeds: &[&[u8]; 2] = &[seeds::USER_VOLUME_ACCUMULATOR_SEED, user.as_ref()];
+            let program_id: &Pubkey = &accounts::AMM_PROGRAM;
             let pda: Option<(Pubkey, u8)> = Pubkey::try_find_program_address(seeds, program_id);
             pda.map(|pubkey| pubkey.0)
         },
@@ -185,8 +183,8 @@ pub fn get_user_volume_accumulator_pda(user: &Pubkey) -> Option<Pubkey> {
 }
 
 pub fn get_global_volume_accumulator_pda() -> Option<Pubkey> {
-    let seeds: &[&[u8]; 1] = &[&seeds::GLOBAL_VOLUME_ACCUMULATOR_SEED];
-    let program_id: &Pubkey = &&accounts::AMM_PROGRAM;
+    let seeds: &[&[u8]; 1] = &[seeds::GLOBAL_VOLUME_ACCUMULATOR_SEED];
+    let program_id: &Pubkey = &accounts::AMM_PROGRAM;
     let pda: Option<(Pubkey, u8)> = Pubkey::try_find_program_address(seeds, program_id);
     pda.map(|pubkey| pubkey.0)
 }
@@ -226,17 +224,29 @@ pub async fn find_by_base_mint(
         sort_results: None,
     };
     let program_id = accounts::AMM_PROGRAM;
-    let accounts = rpc.get_program_accounts_with_config(&program_id, config).await?;
+    let accounts = rpc.get_program_ui_accounts_with_config(&program_id, config).await?;
     if accounts.is_empty() {
         return Err(anyhow!("No pool found for mint {}", base_mint));
     }
-    let accounts_count = accounts.len();  // 🔧 保存长度，因为 into_iter() 会消耗 accounts
+    let accounts_count = accounts.len(); // 🔧 保存长度，因为 into_iter() 会消耗 accounts
     let mut pools: Vec<_> = accounts
         .into_iter()
         .filter_map(|(addr, acc)| {
-            // 🔧 修复：跳过8字节的discriminator
-            if acc.data.len() > 8 {
-                pool_decode(&acc.data[8..]).map(|pool| (addr, pool))
+            // 🔧 修复：解码 UiAccountData
+            let data = match acc.data {
+                solana_account_decoder::UiAccountData::Binary(data, encoding) => {
+                    if encoding == UiAccountEncoding::Base64 {
+                        use base64::{engine::general_purpose::STANDARD, Engine};
+                        STANDARD.decode(data).ok()
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }?;
+
+            if data.len() > 8 {
+                pool_decode(&data[8..]).map(|pool| (addr, pool))
             } else {
                 None
             }
@@ -245,7 +255,11 @@ pub async fn find_by_base_mint(
 
     // 🔧 修复：检查过滤后的 pools 是否为空（accounts 可能不为空但解码全部失败）
     if pools.is_empty() {
-        return Err(anyhow!("No valid pool decoded for mint {} (found {} accounts but all decode failed)", base_mint, accounts_count));
+        return Err(anyhow!(
+            "No valid pool decoded for mint {} (found {} accounts but all decode failed)",
+            base_mint,
+            accounts_count
+        ));
     }
 
     pools.sort_by(|a, b| b.1.lp_supply.cmp(&a.1.lp_supply));
@@ -276,17 +290,29 @@ pub async fn find_by_quote_mint(
         sort_results: None,
     };
     let program_id = accounts::AMM_PROGRAM;
-    let accounts = rpc.get_program_accounts_with_config(&program_id, config).await?;
+    let accounts = rpc.get_program_ui_accounts_with_config(&program_id, config).await?;
     if accounts.is_empty() {
         return Err(anyhow!("No pool found for mint {}", quote_mint));
     }
-    let accounts_count = accounts.len();  // 🔧 保存长度，因为 into_iter() 会消耗 accounts
+    let accounts_count = accounts.len(); // 🔧 保存长度，因为 into_iter() 会消耗 accounts
     let mut pools: Vec<_> = accounts
         .into_iter()
         .filter_map(|(addr, acc)| {
-            // 🔧 修复：跳过8字节的discriminator
-            if acc.data.len() > 8 {
-                pool_decode(&acc.data[8..]).map(|pool| (addr, pool))
+            // 🔧 修复：解码 UiAccountData
+            let data = match acc.data {
+                solana_account_decoder::UiAccountData::Binary(data, encoding) => {
+                    if encoding == UiAccountEncoding::Base64 {
+                        use base64::{engine::general_purpose::STANDARD, Engine};
+                        STANDARD.decode(data).ok()
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }?;
+
+            if data.len() > 8 {
+                pool_decode(&data[8..]).map(|pool| (addr, pool))
             } else {
                 None
             }
@@ -295,7 +321,11 @@ pub async fn find_by_quote_mint(
 
     // 🔧 修复：检查过滤后的 pools 是否为空（accounts 可能不为空但解码全部失败）
     if pools.is_empty() {
-        return Err(anyhow!("No valid pool decoded for quote_mint {} (found {} accounts but all decode failed)", quote_mint, accounts_count));
+        return Err(anyhow!(
+            "No valid pool decoded for quote_mint {} (found {} accounts but all decode failed)",
+            quote_mint,
+            accounts_count
+        ));
     }
 
     pools.sort_by(|a, b| b.1.lp_supply.cmp(&a.1.lp_supply));

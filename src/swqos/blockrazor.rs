@@ -1,21 +1,24 @@
 use crate::swqos::common::{poll_transaction_confirmation, serialize_transaction_and_encode};
 use rand::seq::IndexedRandom;
-use reqwest::{Client, header::{HeaderMap, HeaderValue, CONTENT_TYPE}};
+use reqwest::{
+    header::{HeaderMap, HeaderValue, CONTENT_TYPE},
+    Client,
+};
 use serde_json::json;
 use std::{sync::Arc, time::Instant};
 
-use std::time::Duration;
 use solana_transaction_status::UiTransactionEncoding;
+use std::time::Duration;
 
+use crate::swqos::SwqosClientTrait;
+use crate::swqos::{SwqosType, TradeType};
 use anyhow::Result;
 use solana_sdk::transaction::VersionedTransaction;
-use crate::swqos::{SwqosType, TradeType};
-use crate::swqos::SwqosClientTrait;
 
 use crate::{common::SolanaRpcClient, constants::swqos::BLOCKRAZOR_TIP_ACCOUNTS};
 
-use tokio::task::JoinHandle;
 use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::task::JoinHandle;
 
 #[derive(Clone)]
 pub struct BlockRazorClient {
@@ -29,16 +32,29 @@ pub struct BlockRazorClient {
 
 #[async_trait::async_trait]
 impl SwqosClientTrait for BlockRazorClient {
-    async fn send_transaction(&self, trade_type: TradeType, transaction: &VersionedTransaction, wait_confirmation: bool) -> Result<()> {
+    async fn send_transaction(
+        &self,
+        trade_type: TradeType,
+        transaction: &VersionedTransaction,
+        wait_confirmation: bool,
+    ) -> Result<()> {
         self.send_transaction(trade_type, transaction, wait_confirmation).await
     }
 
-    async fn send_transactions(&self, trade_type: TradeType, transactions: &Vec<VersionedTransaction>, wait_confirmation: bool) -> Result<()> {
+    async fn send_transactions(
+        &self,
+        trade_type: TradeType,
+        transactions: &[VersionedTransaction],
+        wait_confirmation: bool,
+    ) -> Result<()> {
         self.send_transactions(trade_type, transactions, wait_confirmation).await
     }
 
     fn get_tip_account(&self) -> Result<String> {
-        let tip_account = *BLOCKRAZOR_TIP_ACCOUNTS.choose(&mut rand::rng()).or_else(|| BLOCKRAZOR_TIP_ACCOUNTS.first()).unwrap();
+        let tip_account = *BLOCKRAZOR_TIP_ACCOUNTS
+            .choose(&mut rand::rng())
+            .or_else(|| BLOCKRAZOR_TIP_ACCOUNTS.first())
+            .unwrap();
         Ok(tip_account.to_string())
     }
 
@@ -53,32 +69,32 @@ impl BlockRazorClient {
         let http_client = Client::builder()
             // Optimized connection pool settings for high performance
             .pool_idle_timeout(Duration::from_secs(120))
-            .pool_max_idle_per_host(256)  // Increased from 64 to 256
-            .tcp_keepalive(Some(Duration::from_secs(60)))  // Reduced from 1200 to 60
-            .tcp_nodelay(true)  // Disable Nagle's algorithm for lower latency
+            .pool_max_idle_per_host(256) // Increased from 64 to 256
+            .tcp_keepalive(Some(Duration::from_secs(60))) // Reduced from 1200 to 60
+            .tcp_nodelay(true) // Disable Nagle's algorithm for lower latency
             .http2_keep_alive_interval(Duration::from_secs(10))
             .http2_keep_alive_timeout(Duration::from_secs(5))
-            .http2_adaptive_window(true)  // Enable adaptive flow control
-            .timeout(Duration::from_millis(3000))  // Reduced from 10s to 3s
-            .connect_timeout(Duration::from_millis(2000))  // Reduced from 5s to 2s
+            .http2_adaptive_window(true) // Enable adaptive flow control
+            .timeout(Duration::from_millis(3000)) // Reduced from 10s to 3s
+            .connect_timeout(Duration::from_millis(2000)) // Reduced from 5s to 2s
             .build()
             .unwrap();
-        
-        let client = Self { 
-            rpc_client: Arc::new(rpc_client), 
-            endpoint, 
-            auth_token, 
+
+        let client = Self {
+            rpc_client: Arc::new(rpc_client),
+            endpoint,
+            auth_token,
             http_client,
             ping_handle: Arc::new(tokio::sync::Mutex::new(None)),
             stop_ping: Arc::new(AtomicBool::new(false)),
         };
-        
+
         // Start ping task
         let client_clone = client.clone();
         tokio::spawn(async move {
             client_clone.start_ping_task().await;
         });
-        
+
         client
     }
 
@@ -88,24 +104,25 @@ impl BlockRazorClient {
         let auth_token = self.auth_token.clone();
         let http_client = self.http_client.clone();
         let stop_ping = self.stop_ping.clone();
-        
+
         let handle = tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60)); // Ping every 60 seconds
-            
+
             loop {
                 interval.tick().await;
-                
+
                 if stop_ping.load(Ordering::Relaxed) {
                     break;
                 }
-                
+
                 // Send ping request
-                if let Err(e) = Self::send_ping_request(&http_client, &endpoint, &auth_token).await {
+                if let Err(e) = Self::send_ping_request(&http_client, &endpoint, &auth_token).await
+                {
                     eprintln!("BlockRazor ping request failed: {}", e);
                 }
             }
         });
-        
+
         // Update ping_handle - use Mutex to safely update
         {
             let mut ping_guard = self.ping_handle.lock().await;
@@ -117,7 +134,11 @@ impl BlockRazorClient {
     }
 
     /// Send ping request to /health endpoint
-    async fn send_ping_request(http_client: &Client, endpoint: &str, auth_token: &str) -> Result<()> {
+    async fn send_ping_request(
+        http_client: &Client,
+        endpoint: &str,
+        auth_token: &str,
+    ) -> Result<()> {
         // Build health URL by replacing sendTransaction with health
         let ping_url = if endpoint.ends_with("sendTransaction") {
             endpoint.replace("sendTransaction", "health")
@@ -138,24 +159,27 @@ impl BlockRazorClient {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         // Send GET request to /health endpoint with headers
-        let response = http_client.get(&ping_url)
-            .headers(headers)
-            .send()
-            .await?;
-        
+        let response = http_client.get(&ping_url).headers(headers).send().await?;
+
         if response.status().is_success() {
             // ping successful, connection remains active
             // Can optionally log, but to reduce noise, not printing here
         } else {
             eprintln!("BlockRazor ping request failed with status: {}", response.status());
         }
-        
+
         Ok(())
     }
 
-    pub async fn send_transaction(&self, trade_type: TradeType, transaction: &VersionedTransaction, wait_confirmation: bool) -> Result<()> {
+    pub async fn send_transaction(
+        &self,
+        trade_type: TradeType,
+        transaction: &VersionedTransaction,
+        wait_confirmation: bool,
+    ) -> Result<()> {
         let start_time = Instant::now();
-        let (content, signature) = serialize_transaction_and_encode(transaction, UiTransactionEncoding::Base64).await?;
+        let (content, signature) =
+            serialize_transaction_and_encode(transaction, UiTransactionEncoding::Base64).await?;
 
         // BlockRazor使用fast模式的请求格式
         let request_body = serde_json::to_string(&json!({
@@ -164,7 +188,9 @@ impl BlockRazorClient {
         }))?;
 
         // BlockRazor使用apikey header
-        let response_text = self.http_client.post(&self.endpoint)
+        let response_text = self
+            .http_client
+            .post(&self.endpoint)
             .body(request_body)
             .header("Content-Type", "application/json")
             .header("apikey", &self.auth_token)
@@ -189,9 +215,13 @@ impl BlockRazorClient {
             Ok(_) => (),
             Err(e) => {
                 println!(" signature: {:?}", signature);
-                println!(" [blockrazor] {} confirmation failed: {:?}", trade_type, start_time.elapsed());
+                println!(
+                    " [blockrazor] {} confirmation failed: {:?}",
+                    trade_type,
+                    start_time.elapsed()
+                );
                 return Err(e);
-            },
+            }
         }
         if wait_confirmation {
             println!(" signature: {:?}", signature);
@@ -201,7 +231,12 @@ impl BlockRazorClient {
         Ok(())
     }
 
-    pub async fn send_transactions(&self, trade_type: TradeType, transactions: &Vec<VersionedTransaction>, wait_confirmation: bool) -> Result<()> {
+    pub async fn send_transactions(
+        &self,
+        trade_type: TradeType,
+        transactions: &[VersionedTransaction],
+        wait_confirmation: bool,
+    ) -> Result<()> {
         for transaction in transactions {
             self.send_transaction(trade_type, transaction, wait_confirmation).await?;
         }
@@ -213,7 +248,7 @@ impl Drop for BlockRazorClient {
     fn drop(&mut self) {
         // Ensure ping task stops when client is destroyed
         self.stop_ping.store(true, Ordering::Relaxed);
-        
+
         // Try to stop ping task immediately
         // Use tokio::spawn to avoid blocking Drop
         let ping_handle = self.ping_handle.clone();

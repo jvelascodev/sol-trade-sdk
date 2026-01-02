@@ -57,6 +57,12 @@ impl Clone for MiddlewareManager {
     }
 }
 
+impl Default for MiddlewareManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MiddlewareManager {
     /// Create new middleware manager
     pub fn new() -> Self {

@@ -1,0 +1,95 @@
+{
+  "event_type": "Trade",
+  "dex": "PumpFun",
+  "signature": "2puKwrSq6JLBJ2CqVgHmvuJxBcTabcjNQTffrS3CzaSNpAPu6uPCfQhEYq3Tr4KEez2hxT9iA8r8AUHjn6ofVDEi",
+  "event_metrics": {
+    "block_time_us": 1767354453005703,
+    "grpc_recv_us": 1767354453055209,
+    "event_delay_ms": 49,
+    "event_delay_us": 49506,
+    "slot": 390818312,
+    "tx_index": 533
+  },
+  "protocol_data": {
+    "program": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "global": null,
+    "creator_vault": "9tDgLhcpTNR42eocVUHJHX4icHopKKWAXeacEXe9zwJC",
+    "event_authority": null,
+    "system_program": "11111111111111111111111111111111",
+    "token_program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "fee_config": null,
+    "fee_program": null,
+    "associated_user": "56S29mZ3wqvw8hATuUUFqKhGcSGYFASRRFNT38W8q7G3",
+    "bonding_curve": "GSDPiWEPzAomPWuYJuy4mZh2UN1UWsGLyTH1brEge5eE",
+    "associated_bonding_curve": "FTCKQ4G8j1jCKD1QGKGUEPdT5y2Fs7UQWn3g5ARZEfJn",
+    "global_volume_accumulator": null,
+    "user_volume_accumulator": null,
+    "pool": null,
+    "pool_base_token_account": null,
+    "pool_quote_token_account": null,
+    "user_base_token_account": null,
+    "user_quote_token_account": null,
+    "protocol_fee_recipient_token_account": null
+  },
+  "token": "AYA5ooqPpYqozZfV4RGqucenLcYz41GHvkTsPQ3Vr7xx",
+  "token_info": {
+    "name": "",
+    "symbol": "",
+    "uri": "",
+    "creator": "CNsCKQtcB87RFpMetXRDnaAXvyF4m47RntzqdjtDACHQ",
+    "token_total_supply": 1000000000000000,
+    "is_mayhem_mode": false,
+    "global_fees_paid_sol": 0.007630119
+  },
+  "trade_direction": "Buy",
+  "trade_details": {
+    "user": "56S29mZ3wqvw8hATuUUFqKhGcSGYFASRRFNT38W8q7G3",
+    "tokens_bought": 4209992738366,
+    "tokens_bought_formatted": "4.21M",
+    "sol_amount": 0.610409369,
+    "sol_spent": 0.610409369,
+    "sol_spent_usd": 78.17817993467499,
+    "fees": {
+      "fee_lamports": 5798890,
+      "fee_sol": 0.00579889,
+      "fee_usd": 0.74269283675,
+      "fee_basis_points": 95,
+      "fee_recipient": "CebN5WGQ4jvEPvsVU4EoHEpgzq1VV7AbicfhtW4xC9iM",
+      "creator_fee_lamports": 1831229,
+      "creator_fee_sol": 0.001831229,
+      "creator_fee_usd": 0.23453465417499997,
+      "creator_fee_basis_points": 30
+    },
+    "is_bot": false,
+    "is_created_buy": false,
+    "is_user_wallet": false,
+    "user_wallet": null,
+    "timestamp": 1767354452
+  },
+  "trade_metrics": {
+    "sol_price_usd_at_trade": 128.075,
+    "token_price_sol": 1.4629187894243756e-7,
+    "market_cap_usd": 18736.33239555269,
+    "market_cap_formatted": "18.74K",
+    "volume_usd": 78.17817993467499,
+    "liquidity_usd": 17577.817867870097,
+    "token_created_at": null
+  },
+  "bonding_curve_data": {
+    "virtual_sol_reserves": 68623142174,
+    "virtual_token_reserves": 469083743199454,
+    "real_sol_reserves": 38623142174,
+    "real_token_reserves": 189183743199454,
+    "bonding_curve_progress": 55.975568368115944
+  },
+  "trade_data": {
+    "max_sol_cost": 0,
+    "min_sol_output": 0,
+    "track_volume": true,
+    "total_unclaimed_tokens": 0,
+    "total_claimed_tokens": 0,
+    "current_sol_volume": 0,
+    "last_update_timestamp": 0,
+    "complete": false
+  }
+}

@@ -13,23 +13,15 @@ use std::{str::FromStr, sync::Arc, time::Instant};
 use crate::{
     common::nonce_cache::DurableNonceInfo,
     common::{GasFeeStrategy, SolanaRpcClient},
+    constants::swqos::{
+        SWQOS_MIN_TIP_ASTRALANE, SWQOS_MIN_TIP_BLOCKRAZOR, SWQOS_MIN_TIP_BLOXROUTE,
+        SWQOS_MIN_TIP_DEFAULT, SWQOS_MIN_TIP_FLASHBLOCK, SWQOS_MIN_TIP_JITO,
+        SWQOS_MIN_TIP_LIGHTSPEED, SWQOS_MIN_TIP_NEXTBLOCK, SWQOS_MIN_TIP_NODE1,
+        SWQOS_MIN_TIP_SOYAS, SWQOS_MIN_TIP_STELLIUM, SWQOS_MIN_TIP_TEMPORAL,
+        SWQOS_MIN_TIP_ZERO_SLOT,
+    },
     swqos::{SwqosClient, SwqosType, TradeType},
     trading::{common::build_transaction, MiddlewareManager},
-    constants::swqos::{
-        SWQOS_MIN_TIP_DEFAULT,
-        SWQOS_MIN_TIP_JITO,
-        SWQOS_MIN_TIP_NEXTBLOCK,
-        SWQOS_MIN_TIP_ZERO_SLOT,
-        SWQOS_MIN_TIP_TEMPORAL,
-        SWQOS_MIN_TIP_BLOXROUTE,
-        SWQOS_MIN_TIP_NODE1,
-        SWQOS_MIN_TIP_FLASHBLOCK,
-        SWQOS_MIN_TIP_BLOCKRAZOR,
-        SWQOS_MIN_TIP_ASTRALANE,
-        SWQOS_MIN_TIP_STELLIUM,
-        SWQOS_MIN_TIP_LIGHTSPEED,
-        SWQOS_MIN_TIP_SOYAS
-    },
 };
 
 #[repr(align(64))]
@@ -37,8 +29,7 @@ struct TaskResult {
     success: bool,
     signature: Signature,
     error: Option<anyhow::Error>,
-    swqos_type: SwqosType,  // 🔧 增加：记录SWQOS类型
-    landed_on_chain: bool,  // 🔧 Whether tx landed on-chain (even if failed)
+    landed_on_chain: bool, // 🔧 Whether tx landed on-chain (even if failed)
 }
 
 /// Check if an error indicates the transaction landed on-chain (vs network/timeout error)
@@ -68,7 +59,7 @@ fn is_landed_error(error: &anyhow::Error) -> bool {
 struct ResultCollector {
     results: Arc<ArrayQueue<TaskResult>>,
     success_flag: Arc<AtomicBool>,
-    landed_failed_flag: Arc<AtomicBool>,  // 🔧 Tx landed on-chain but failed (nonce consumed)
+    landed_failed_flag: Arc<AtomicBool>, // 🔧 Tx landed on-chain but failed (nonce consumed)
     completed_count: Arc<AtomicUsize>,
     total_tasks: usize,
 }
@@ -172,7 +163,7 @@ impl ResultCollector {
         let mut signatures = Vec::new();
         let mut has_success = false;
         let mut last_error = None;
-        
+
         while let Some(result) = self.results.pop() {
             signatures.push(result.signature);
             if result.success {
@@ -182,7 +173,7 @@ impl ResultCollector {
                 last_error = result.error;
             }
         }
-        
+
         if !signatures.is_empty() {
             Some((has_success, signatures, last_error))
         } else {
@@ -192,6 +183,7 @@ impl ResultCollector {
 }
 
 /// 🔧 修复：返回Vec<Signature>支持多SWQOS并发交易
+#[allow(clippy::too_many_arguments)]
 pub async fn execute_parallel(
     swqos_clients: Vec<Arc<SwqosClient>>,
     payer: Arc<Keypair>,
@@ -214,10 +206,7 @@ pub async fn execute_parallel(
     }
 
     if !with_tip
-        && swqos_clients
-            .iter()
-            .find(|swqos| matches!(swqos.get_swqos_type(), SwqosType::Default))
-            .is_none()
+        && !swqos_clients.iter().any(|swqos| matches!(swqos.get_swqos_type(), SwqosType::Default))
     {
         return Err(anyhow!("No Rpc Default Swqos configured."));
     }
@@ -336,8 +325,7 @@ pub async fn execute_parallel(
                         success: false,
                         signature: Signature::default(),
                         error: Some(e),
-                        swqos_type,  // 🔧 记录SWQOS类型
-                        landed_on_chain: false,  // Build failed, tx never sent
+                        landed_on_chain: false, // Build failed, tx never sent
                     });
                     return;
                 }
@@ -347,8 +335,7 @@ pub async fn execute_parallel(
 
             let _send_start = Instant::now();
             let mut err: Option<anyhow::Error> = None;
-            let mut landed_on_chain = false;
-            let success = match swqos_client
+            let (success, landed_on_chain) = match swqos_client
                 .send_transaction(
                     if is_buy { TradeType::Buy } else { TradeType::Sell },
                     &transaction,
@@ -356,16 +343,11 @@ pub async fn execute_parallel(
                 )
                 .await
             {
-                Ok(()) => {
-                    landed_on_chain = true;  // Success means tx confirmed on-chain
-                    true
-                }
+                Ok(()) => (true, true),
                 Err(e) => {
-                    // Check if this error indicates the tx landed but failed (e.g., ExceededSlippage)
-                    landed_on_chain = is_landed_error(&e);
+                    let landed = is_landed_error(&e);
                     err = Some(e);
-                    // Send transaction failed
-                    false
+                    (false, landed)
                 }
             };
 
@@ -376,8 +358,7 @@ pub async fn execute_parallel(
                     success,
                     signature: *signature,
                     error: err,
-                    swqos_type,  // 🔧 记录SWQOS类型
-                    landed_on_chain,  // 🔧 Whether tx landed (even if it failed)
+                    landed_on_chain, // 🔧 Whether tx landed (even if it failed)
                 });
             }
         });

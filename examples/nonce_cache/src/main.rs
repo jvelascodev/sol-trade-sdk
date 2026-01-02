@@ -11,7 +11,10 @@ use sol_trade_sdk::TradeTokenType;
 use sol_trade_sdk::{
     common::AnyResult,
     swqos::SwqosConfig,
-    trading::{core::params::{PumpFunParams, DexParamEnum}, factory::DexType},
+    trading::{
+        core::params::{DexParamEnum, PumpFunParams},
+        factory::DexType,
+    },
     SolanaTrade,
 };
 use solana_commitment_config::CommitmentConfig;
@@ -135,7 +138,7 @@ async fn pumpfun_copy_trade_with_grpc(trade_info: PumpFunTradeEvent) -> AnyResul
         input_token_type: TradeTokenType::SOL,
         mint: mint_pubkey,
         input_token_amount: buy_sol_amount,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpFun(PumpFunParams::from_trade(
             trade_info.bonding_curve,
@@ -156,9 +159,9 @@ async fn pumpfun_copy_trade_with_grpc(trade_info: PumpFunTradeEvent) -> AnyResul
         create_input_token_ata: false,
         close_input_token_ata: false,
         create_mint_ata: true,
-        durable_nonce: durable_nonce,
+        durable_nonce,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.buy(buy_params).await?;

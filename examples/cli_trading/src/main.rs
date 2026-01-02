@@ -12,7 +12,8 @@ use sol_trade_sdk::{
     swqos::SwqosConfig,
     trading::{
         core::params::{
-            BonkParams, PumpFunParams, PumpSwapParams, RaydiumAmmV4Params, RaydiumCpmmParams, DexParamEnum,
+            BonkParams, DexParamEnum, PumpFunParams, PumpSwapParams, RaydiumAmmV4Params,
+            RaydiumCpmmParams,
         },
         factory::DexType,
     },
@@ -33,7 +34,7 @@ use std::{
     str::FromStr,
 };
 // 设置 payer
-static PAYER: LazyLock<Keypair> = LazyLock::new(|| Keypair::new());
+static PAYER: LazyLock<Keypair> = LazyLock::new(Keypair::new);
 // 设置 rpc url
 static RPC_URL: &str = "https://api.mainnet-beta.solana.com";
 
@@ -267,21 +268,21 @@ async fn run_interactive_mode() -> Result<(), Box<dyn std::error::Error>> {
                 handle_close_wsol().await?;
             }
             _ => {
-                if input.starts_with("raydium_cpmm_buy ") {
-                    handle_interactive_raydium_cpmm_buy(&input[16..]).await?;
-                } else if input.starts_with("raydium_cpmm_sell ") {
-                    handle_interactive_raydium_cpmm_sell(&input[17..]).await?;
-                } else if input.starts_with("raydium_v4_buy ") {
-                    handle_interactive_raydium_v4_buy(&input[14..]).await?;
-                } else if input.starts_with("raydium_v4_sell ") {
-                    handle_interactive_raydium_v4_sell(&input[15..]).await?;
-                } else if input.starts_with("buy ") {
-                    handle_interactive_buy(&input[4..]).await?;
-                } else if input.starts_with("sell ") {
-                    handle_interactive_sell(&input[5..]).await?;
-                } else if input.starts_with("wrap_sol ") || input.starts_with("wrap-sol ") {
-                    let amount_str =
-                        if input.starts_with("wrap_sol ") { &input[9..] } else { &input[9..] };
+                if let Some(rest) = input.strip_prefix("raydium_cpmm_buy ") {
+                    handle_interactive_raydium_cpmm_buy(rest).await?;
+                } else if let Some(rest) = input.strip_prefix("raydium_cpmm_sell ") {
+                    handle_interactive_raydium_cpmm_sell(rest).await?;
+                } else if let Some(rest) = input.strip_prefix("raydium_v4_buy ") {
+                    handle_interactive_raydium_v4_buy(rest).await?;
+                } else if let Some(rest) = input.strip_prefix("raydium_v4_sell ") {
+                    handle_interactive_raydium_v4_sell(rest).await?;
+                } else if let Some(rest) = input.strip_prefix("buy ") {
+                    handle_interactive_buy(rest).await?;
+                } else if let Some(rest) = input.strip_prefix("sell ") {
+                    handle_interactive_sell(rest).await?;
+                } else if let Some(amount_str) =
+                    input.strip_prefix("wrap_sol ").or_else(|| input.strip_prefix("wrap-sol "))
+                {
                     if let Ok(amount) = amount_str.parse::<f64>() {
                         handle_wrap_sol(amount).await?;
                     } else {
@@ -476,23 +477,20 @@ async fn check_mint_ata(
     let mint_pubkey = Pubkey::from_str(mint).unwrap();
 
     if let Ok(mint_info) = client.rpc.get_account(&mint_pubkey).await {
-        let owner_pubkey = mint_info.owner.clone();
+        let owner_pubkey = mint_info.owner;
         let mint_ata = get_associated_token_address_with_program_id_fast_use_seed(
             &client.get_payer_pubkey(),
             &mint_pubkey,
             &owner_pubkey,
             false,
         );
-        match client.rpc.get_token_account_balance(&mint_ata).await {
-            Ok(balance) => {
-                let amount = balance.ui_amount.unwrap_or(0.0);
-                decimals = balance.decimals;
-                amount_f64 = amount as f64 * 10_f64.powi(decimals as i32);
+        if let Ok(balance) = client.rpc.get_token_account_balance(&mint_ata).await {
+            let amount = balance.ui_amount.unwrap_or(0.0);
+            decimals = balance.decimals;
+            amount_f64 = amount * 10_f64.powi(decimals as i32);
 
-                create_mint_ata = false;
-                use_seed = false;
-            }
-            Err(_) => {}
+            create_mint_ata = false;
+            use_seed = false;
         }
         if !create_mint_ata {
             return Ok((create_mint_ata, use_seed, owner_pubkey, amount_f64, decimals));
@@ -504,19 +502,17 @@ async fn check_mint_ata(
             &owner_pubkey,
             true,
         );
-        match client.rpc.get_token_account_balance(&mint_ata).await {
-            Ok(_) => {
-                create_mint_ata = false;
-                use_seed = true;
-            }
-            Err(_) => {}
+        if client.rpc.get_token_account_balance(&mint_ata).await.is_ok() {
+            create_mint_ata = false;
+            use_seed = true;
         }
         return Ok((create_mint_ata, use_seed, owner_pubkey, amount_f64, decimals));
     }
-    return Err("Mint account not found".to_string().into());
+    Err("Mint account not found".to_string().into())
 }
 
 // Buy and sell functions - currently in demo mode since trading logic is complex
+#[allow(clippy::too_many_arguments)]
 async fn handle_buy(
     mint: &str,
     dex: &str,
@@ -531,7 +527,7 @@ async fn handle_buy(
 
     let client = initialize_real_client().await?;
 
-    let (create_mint_ata, use_seed, owner_pubkey, amount_f64, decimals) =
+    let (create_mint_ata, use_seed, owner_pubkey, _amount_f64, _decimals) =
         check_mint_ata(&client, mint).await?;
 
     match dex {
@@ -558,6 +554,7 @@ async fn handle_buy(
     }
     Ok(())
 }
+#[allow(clippy::too_many_arguments)]
 async fn handle_buy_rv4(
     mint: &str,
     amm: &str,
@@ -565,13 +562,14 @@ async fn handle_buy_rv4(
     slippage: Option<u64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = initialize_real_client().await?;
-    let (create_mint_ata, use_seed, owner_pubkey, amount_f64, decimals) =
+    let (create_mint_ata, use_seed, owner_pubkey, _amount_f64, _decimals) =
         check_mint_ata(&client, mint).await?;
     handle_buy_raydium_v4(mint, amm, sol_amount, slippage, create_mint_ata, use_seed, owner_pubkey)
         .await?;
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_buy_rcpmm(
     mint: &str,
     pool_address: &str,
@@ -579,7 +577,7 @@ async fn handle_buy_rcpmm(
     slippage: Option<u64>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = initialize_real_client().await?;
-    let (create_mint_ata, use_seed, owner_pubkey, amount_f64, decimals) =
+    let (create_mint_ata, use_seed, owner_pubkey, _amount_f64, _decimals) =
         check_mint_ata(&client, mint).await?;
     handle_buy_raydium_cpmm(
         mint,
@@ -599,14 +597,14 @@ async fn handle_buy_pumpfun(
     sol_amount: f64,
     slippage: Option<u64>,
     create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("🔥 BUY PUMPFUN COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   SOL Amount: {} SOL", sol_amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}", s);
     }
     let client = initialize_real_client().await?;
     let mint_pubkey = Pubkey::from_str(mint)?;
@@ -629,10 +627,10 @@ async fn handle_buy_pumpfun(
         wait_transaction_confirmed: true,
         create_input_token_ata: false,
         close_input_token_ata: false,
-        create_mint_ata: create_mint_ata,
+        create_mint_ata,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.buy(buy_params).await {
@@ -653,15 +651,15 @@ async fn handle_buy_pumpswap(
     sol_amount: f64,
     slippage: Option<u64>,
     create_mint_ata: bool,
-    use_seed: bool,
+    _use_seed: bool,
     _owner_pubkey: Pubkey,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = initialize_real_client().await?;
     println!("🔥 BUY PUMPSWAP COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   SOL Amount: {} SOL", sol_amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}%", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}%", s);
     }
     let mint_pubkey = Pubkey::from_str(mint)?;
     let param = PumpSwapParams::from_mint_by_rpc(&client.rpc, &mint_pubkey).await?;
@@ -683,10 +681,10 @@ async fn handle_buy_pumpswap(
         wait_transaction_confirmed: true,
         create_input_token_ata: true,
         close_input_token_ata: false,
-        create_mint_ata: create_mint_ata,
+        create_mint_ata,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.buy(buy_params).await {
@@ -706,15 +704,15 @@ async fn handle_buy_bonk(
     sol_amount: f64,
     slippage: Option<u64>,
     create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = initialize_real_client().await?;
     println!("🔥 BUY BONK COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   SOL Amount: {} SOL", sol_amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}%", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}%", s);
     }
     let mint_pubkey = Pubkey::from_str(mint)?;
     let param = BonkParams::from_mint_by_rpc(&client.rpc, &mint_pubkey, false).await?;
@@ -736,10 +734,10 @@ async fn handle_buy_bonk(
         wait_transaction_confirmed: true,
         create_input_token_ata: true,
         close_input_token_ata: false,
-        create_mint_ata: create_mint_ata,
+        create_mint_ata,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.buy(buy_params).await {
@@ -760,16 +758,16 @@ async fn handle_buy_raydium_v4(
     sol_amount: f64,
     slippage: Option<u64>,
     create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = initialize_real_client().await?;
     println!("🔥 BUY RAYDIUM V4 COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   AMM: {}", amm);
     println!("   SOL Amount: {} SOL", sol_amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}%", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}%", s);
     }
 
     let mint_pubkey = Pubkey::from_str(mint)?;
@@ -793,10 +791,10 @@ async fn handle_buy_raydium_v4(
         wait_transaction_confirmed: true,
         create_input_token_ata: true,
         close_input_token_ata: false,
-        create_mint_ata: create_mint_ata,
+        create_mint_ata,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.buy(buy_params).await {
@@ -817,16 +815,16 @@ async fn handle_buy_raydium_cpmm(
     sol_amount: f64,
     slippage: Option<u64>,
     create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = initialize_real_client().await?;
     println!("🔥 BUY RAYDIUM CPMM COMMAND");
     println!("   Pool Address: {}", pool_address);
     println!("   Token Mint: {}", mint);
     println!("   SOL Amount: {} SOL", sol_amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}%", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}%", s);
     }
 
     let mint_pubkey = Pubkey::from_str(mint)?;
@@ -850,10 +848,10 @@ async fn handle_buy_raydium_cpmm(
         wait_transaction_confirmed: true,
         create_input_token_ata: true,
         close_input_token_ata: false,
-        create_mint_ata: create_mint_ata,
+        create_mint_ata,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.buy(buy_params).await {
@@ -978,23 +976,24 @@ async fn handle_sell_rcpmm(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_sell_pumpfun(
     mint: &str,
     token_amount: Option<f64>,
     slippage: Option<u64>,
-    create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _create_mint_ata: bool,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
     amount_f64: f64,
-    decimals: u8,
+    _decimals: u8,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let amount = if token_amount.is_some() { token_amount.unwrap() } else { amount_f64 };
+    let amount = token_amount.unwrap_or(amount_f64);
 
     println!("🔥 SELL PUMPFUN COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   Token Amount: {} ", amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}%", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}%", s);
     }
 
     let client = initialize_real_client().await?;
@@ -1021,7 +1020,7 @@ async fn handle_sell_pumpfun(
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
 
@@ -1038,22 +1037,23 @@ async fn handle_sell_pumpfun(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_sell_pumpswap(
     mint: &str,
     token_amount: Option<f64>,
     slippage: Option<u64>,
-    create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _create_mint_ata: bool,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
     amount_f64: f64,
-    decimals: u8,
+    _decimals: u8,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let amount = if token_amount.is_some() { token_amount.unwrap() } else { amount_f64 };
+    let amount = token_amount.unwrap_or(amount_f64);
     println!("🔥 SELL PUMPSWAP COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   Token Amount: {}", amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}", s);
     }
     let client = initialize_real_client().await?;
     let mint_pubkey = Pubkey::from_str(mint)?;
@@ -1079,13 +1079,13 @@ async fn handle_sell_pumpswap(
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.sell(sell_params).await {
         Ok((_, signature, _)) => {
             println!("   ✅ Successfully sold tokens from PumpSwap!");
-            println!("   ✅ Transaction Signature: {}", signature);
+            println!("   ✅ Transaction Signature: {:?}", signature);
         }
         Err(e) => {
             println!("   ❌ Failed to sell tokens from PumpSwap: {}", e);
@@ -1095,22 +1095,23 @@ async fn handle_sell_pumpswap(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_sell_bonk(
     mint: &str,
     token_amount: Option<f64>,
     slippage: Option<u64>,
-    create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _create_mint_ata: bool,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
     amount_f64: f64,
-    decimals: u8,
+    _decimals: u8,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let amount = if token_amount.is_some() { token_amount.unwrap() } else { amount_f64 };
+    let amount = token_amount.unwrap_or(amount_f64);
     println!("🔥 SELL PUMPSWAP COMMAND");
     println!("   Token Mint: {}", mint);
     println!("   Token Amount: {}", amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}", s);
     }
     let client = initialize_real_client().await?;
     let mint_pubkey = Pubkey::from_str(mint)?;
@@ -1136,7 +1137,7 @@ async fn handle_sell_bonk(
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.sell(sell_params).await {
@@ -1152,24 +1153,25 @@ async fn handle_sell_bonk(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_sell_raydium_v4(
     amm: &str,
     mint: &str,
     token_amount: Option<f64>,
     slippage: Option<u64>,
-    create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _create_mint_ata: bool,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
     amount_f64: f64,
-    decimals: u8,
+    _decimals: u8,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let amount = if token_amount.is_some() { token_amount.unwrap() } else { amount_f64 };
+    let amount = token_amount.unwrap_or(amount_f64);
     println!("🔥 SELL RAYDIUM V4 COMMAND");
     println!("   AMM: {}", amm);
     println!("   Token Mint: {}", mint);
     println!("   Token Amount: {}", amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}", s);
     }
     let client = initialize_real_client().await?;
     let amm_pubkey = Pubkey::from_str(amm)?;
@@ -1196,7 +1198,7 @@ async fn handle_sell_raydium_v4(
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.sell(sell_params).await {
@@ -1212,24 +1214,25 @@ async fn handle_sell_raydium_v4(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn handle_sell_raydium_cpmm(
     mint: &str,
     pool_address: &str,
     token_amount: Option<f64>,
     slippage: Option<u64>,
-    create_mint_ata: bool,
-    use_seed: bool,
-    owner_pubkey: Pubkey,
+    _create_mint_ata: bool,
+    _use_seed: bool,
+    _owner_pubkey: Pubkey,
     amount_f64: f64,
-    decimals: u8,
+    _decimals: u8,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let amount = if token_amount.is_some() { token_amount.unwrap() } else { amount_f64 };
+    let amount = token_amount.unwrap_or(amount_f64);
     println!("🔥 SELL RAYDIUM CPMM COMMAND");
     println!("   Pool Address: {}", pool_address);
     println!("   Token Mint: {}", mint);
     println!("   Token Amount: {}", amount);
-    if slippage.is_some() {
-        println!("   Slippage: {}", slippage.unwrap());
+    if let Some(s) = slippage {
+        println!("   Slippage: {}", s);
     }
     let client = initialize_real_client().await?;
     let pool_pubkey = Pubkey::from_str(pool_address)?;
@@ -1256,7 +1259,7 @@ async fn handle_sell_raydium_cpmm(
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     match client.sell(sell_params).await {

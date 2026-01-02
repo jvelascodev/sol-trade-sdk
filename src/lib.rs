@@ -8,7 +8,7 @@ pub mod utils;
 use crate::common::nonce_cache::DurableNonceInfo;
 use crate::common::GasFeeStrategy;
 use crate::common::TradeConfig;
-use crate::constants::trade::trade::DEFAULT_SLIPPAGE;
+
 use crate::constants::SOL_TOKEN_ACCOUNT;
 use crate::constants::USD1_TOKEN_ACCOUNT;
 use crate::constants::USDC_TOKEN_ACCOUNT;
@@ -18,12 +18,12 @@ use crate::swqos::SwqosClient;
 use crate::swqos::SwqosConfig;
 use crate::swqos::TradeType;
 use crate::trading::core::params::BonkParams;
+use crate::trading::core::params::DexParamEnum;
 use crate::trading::core::params::MeteoraDammV2Params;
 use crate::trading::core::params::PumpFunParams;
 use crate::trading::core::params::PumpSwapParams;
 use crate::trading::core::params::RaydiumAmmV4Params;
 use crate::trading::core::params::RaydiumCpmmParams;
-use crate::trading::core::params::DexParamEnum;
 use crate::trading::factory::DexType;
 use crate::trading::MiddlewareManager;
 use crate::trading::SwapParams;
@@ -194,18 +194,19 @@ impl TradingClient {
 
         let rpc_url = trade_config.rpc_url.clone();
         let swqos_configs = trade_config.swqos_configs.clone();
-        let commitment = trade_config.commitment.clone();
+        let commitment = trade_config.commitment;
         let mut swqos_clients: Vec<Arc<SwqosClient>> = vec![];
 
         for swqos in swqos_configs {
             // Check blacklist, skip disabled providers
             if swqos.is_blacklisted() {
-                eprintln!("\u{26a0}\u{fe0f} SWQOS {:?} is blacklisted, skipping", swqos.swqos_type());
+                eprintln!(
+                    "\u{26a0}\u{fe0f} SWQOS {:?} is blacklisted, skipping",
+                    swqos.swqos_type()
+                );
                 continue;
             }
-            match SwqosConfig::get_swqos_client(rpc_url.clone(), commitment.clone(), swqos.clone())
-                .await
-            {
+            match SwqosConfig::get_swqos_client(rpc_url.clone(), commitment, swqos.clone()).await {
                 Ok(swqos_client) => swqos_clients.push(swqos_client),
                 Err(err) => eprintln!(
                     "failed to create {:?} swqos client: {err}. Excluding from swqos list",
@@ -214,8 +215,7 @@ impl TradingClient {
             }
         }
 
-        let rpc =
-            Arc::new(SolanaRpcClient::new_with_commitment(rpc_url.clone(), commitment.clone()));
+        let rpc = Arc::new(SolanaRpcClient::new_with_commitment(rpc_url.clone(), commitment));
         common::seed::update_rents(&rpc).await.unwrap();
         common::seed::start_rent_updater(rpc.clone());
 
@@ -391,7 +391,7 @@ impl TradingClient {
         } else {
             USD1_TOKEN_ACCOUNT
         };
-        let executor = TradeFactory::create_executor(params.dex_type.clone());
+        let executor = TradeFactory::create_executor(params.dex_type);
         let protocol_params = params.extension_params;
         let buy_params = SwapParams {
             rpc: Some(self.rpc.clone()),
@@ -443,10 +443,10 @@ impl TradingClient {
             return Err(anyhow::anyhow!("Invalid protocol params for Trade"));
         }
 
-        let swap_result = executor.swap(buy_params).await;
-        let result =
-            swap_result.map(|(success, sigs, err)| (success, sigs, err.map(TradeError::from)));
-        return result;
+        executor
+            .swap(buy_params)
+            .await
+            .map(|(success, sigs, err)| (success, sigs, err.map(TradeError::from)))
     }
 
     /// Execute a sell order for a specified token
@@ -491,7 +491,7 @@ impl TradingClient {
                 " Current version only support USD1 trading on Bonk protocols"
             ));
         }
-        let executor = TradeFactory::create_executor(params.dex_type.clone());
+        let executor = TradeFactory::create_executor(params.dex_type);
         let protocol_params = params.extension_params;
         let output_token_mint = if params.output_token_type == TradeTokenType::SOL {
             SOL_TOKEN_ACCOUNT
@@ -553,10 +553,10 @@ impl TradingClient {
         }
 
         // Execute sell based on tip preference
-        let swap_result = executor.swap(sell_params).await;
-        let result =
-            swap_result.map(|(success, sigs, err)| (success, sigs, err.map(TradeError::from)));
-        return result;
+        executor
+            .swap(sell_params)
+            .await
+            .map(|(success, sigs, err)| (success, sigs, err.map(TradeError::from)))
     }
 
     /// Execute a sell order for a percentage of the specified token amount
@@ -719,8 +719,10 @@ impl TradingClient {
     /// - 交易执行或确认失败
     /// - 网络或 RPC 错误
     pub async fn wrap_wsol_to_sol(&self, amount: u64) -> Result<String, anyhow::Error> {
-        use crate::trading::common::wsol_manager::{wrap_wsol_to_sol as wrap_wsol_to_sol_internal, wrap_wsol_to_sol_without_create};
         use crate::common::seed::get_associated_token_address_with_program_id_use_seed;
+        use crate::trading::common::wsol_manager::{
+            wrap_wsol_to_sol as wrap_wsol_to_sol_internal, wrap_wsol_to_sol_without_create,
+        };
         use solana_sdk::transaction::Transaction;
 
         // 检查临时seed账户是否已存在
@@ -741,7 +743,8 @@ impl TradingClient {
         };
 
         let recent_blockhash = self.rpc.get_latest_blockhash().await?;
-        let mut transaction = Transaction::new_with_payer(&instructions, Some(&self.payer.pubkey()));
+        let mut transaction =
+            Transaction::new_with_payer(&instructions, Some(&self.payer.pubkey()));
         transaction.sign(&[&*self.payer], recent_blockhash);
         let signature = self.rpc.send_and_confirm_transaction(&transaction).await?;
         Ok(signature.to_string())

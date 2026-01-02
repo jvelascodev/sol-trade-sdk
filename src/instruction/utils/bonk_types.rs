@@ -107,7 +107,7 @@ pub struct PoolState {
     pub creator: Pubkey,
     pub padding: [u64; 8],
 }
-pub const POOL_STATE_SIZE: usize = 8 + 1 * 5 + 8 * 10 + 32 * 7 + 8 * 8 + 8 * 5;
+pub const POOL_STATE_SIZE: usize = 8 + 5 + 8 * 10 + 32 * 7 + 8 * 8 + 8 * 5;
 pub fn pool_state_decode(data: &[u8]) -> Option<PoolState> {
     if data.len() < POOL_STATE_SIZE {
         return None;

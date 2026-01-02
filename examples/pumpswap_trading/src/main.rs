@@ -4,7 +4,10 @@ use sol_trade_sdk::TradeTokenType;
 use sol_trade_sdk::{
     common::AnyResult,
     swqos::SwqosConfig,
-    trading::{core::params::{PumpSwapParams, DexParamEnum}, factory::DexType},
+    trading::{
+        core::params::{DexParamEnum, PumpSwapParams},
+        factory::DexType,
+    },
     SolanaTrade,
 };
 use solana_commitment_config::CommitmentConfig;
@@ -208,7 +211,7 @@ async fn pumpswap_trade_with_grpc(mint_pubkey: Pubkey, params: PumpSwapParams) -
         input_token_type: if is_sol { TradeTokenType::SOL } else { TradeTokenType::USDC },
         mint: mint_pubkey,
         input_token_amount: buy_token_amount,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpSwap(params.clone()),
         address_lookup_table_account: None,
@@ -233,7 +236,12 @@ async fn pumpswap_trade_with_grpc(mint_pubkey: Pubkey, params: PumpSwapParams) -
     } else {
         params.quote_token_program
     };
-    let account = get_associated_token_address_with_program_id_fast_use_seed(&payer, &mint_pubkey, &program_id, client.use_seed_optimize);
+    let account = get_associated_token_address_with_program_id_fast_use_seed(
+        &payer,
+        &mint_pubkey,
+        &program_id,
+        client.use_seed_optimize,
+    );
     let balance = rpc.get_token_account_balance(&account).await?;
     let amount_token = balance.amount.parse::<u64>().unwrap();
     let sell_params = sol_trade_sdk::TradeSellParams {
@@ -241,7 +249,7 @@ async fn pumpswap_trade_with_grpc(mint_pubkey: Pubkey, params: PumpSwapParams) -
         output_token_type: if is_sol { TradeTokenType::SOL } else { TradeTokenType::USDC },
         mint: mint_pubkey,
         input_token_amount: amount_token,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         with_tip: false,
         extension_params: DexParamEnum::PumpSwap(params.clone()),
@@ -252,7 +260,7 @@ async fn pumpswap_trade_with_grpc(mint_pubkey: Pubkey, params: PumpSwapParams) -
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.sell(sell_params).await?;

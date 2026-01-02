@@ -1,6 +1,8 @@
 use solana_hash::Hash;
 use solana_sdk::{
-    instruction::Instruction, message::AddressLookupTableAccount, native_token::sol_str_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer, transaction::VersionedTransaction
+    instruction::Instruction, message::AddressLookupTableAccount,
+    native_token::sol_str_to_lamports, pubkey::Pubkey, signature::Keypair, signer::Signer,
+    transaction::VersionedTransaction,
 };
 use solana_system_interface::instruction::transfer;
 use std::sync::Arc;
@@ -11,14 +13,17 @@ use super::{
 };
 use crate::{
     common::{nonce_cache::DurableNonceInfo, SolanaRpcClient},
-    constants::swqos::NODE1_TIP_ACCOUNTS,
-    trading::{MiddlewareManager, core::transaction_pool::{acquire_builder, release_builder}},
+    trading::{
+        core::transaction_pool::{acquire_builder, release_builder},
+        MiddlewareManager,
+    },
 };
 
 /// Build standard RPC transaction
+#[allow(clippy::too_many_arguments)]
 pub async fn build_transaction(
     payer: Arc<Keypair>,
-    rpc: Option<Arc<SolanaRpcClient>>,
+    _rpc: Option<Arc<SolanaRpcClient>>,
     unit_limit: u32,
     unit_price: u64,
     business_instructions: Vec<Instruction>,
@@ -37,11 +42,7 @@ pub async fn build_transaction(
     let mut instructions = Vec::with_capacity(business_instructions.len() + 5);
 
     // Add nonce instruction
-    if let Err(e) =
-        add_nonce_instruction(&mut instructions, payer.as_ref(), durable_nonce.clone())
-    {
-        return Err(e);
-    }
+    add_nonce_instruction(&mut instructions, payer.as_ref(), durable_nonce.clone())?;
 
     // Add tip transfer instruction
     if with_tip && tip_amount > 0.0 {
@@ -53,10 +54,7 @@ pub async fn build_transaction(
     }
 
     // Add compute budget instructions
-    instructions.extend(compute_budget_instructions(
-        unit_price,
-        unit_limit,
-    ));
+    instructions.extend(compute_budget_instructions(unit_price, unit_limit));
 
     // Add business instructions
     instructions.extend(business_instructions);

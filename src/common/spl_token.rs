@@ -15,8 +15,7 @@ pub fn close_account(
     signer_pubkeys: &[&Pubkey],
 ) -> Result<Instruction, solana_sdk::program_error::ProgramError> {
     // CloseAccount
-    let mut data = Vec::with_capacity(1);
-    data.push(9);
+    let data = vec![9];
     let mut accounts = Vec::with_capacity(3 + signer_pubkeys.len());
     accounts.push(solana_sdk::message::AccountMeta::new(*account_pubkey, false));
     accounts.push(solana_sdk::message::AccountMeta::new(*destination_pubkey, false));
@@ -52,11 +51,7 @@ pub fn transfer(
         accounts.push(AccountMeta::new_readonly(**signer, true));
     }
 
-    Ok(Instruction {
-        program_id: *token_program_id,
-        accounts,
-        data,
-    })
+    Ok(Instruction { program_id: *token_program_id, accounts, data })
 }
 
 pub fn initialize_account3(

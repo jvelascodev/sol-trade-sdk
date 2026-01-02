@@ -4,7 +4,10 @@ use sol_trade_sdk::TradeTokenType;
 use sol_trade_sdk::{
     common::AnyResult,
     swqos::SwqosConfig,
-    trading::{core::params::{PumpFunParams, DexParamEnum}, factory::DexType},
+    trading::{
+        core::params::{DexParamEnum, PumpFunParams},
+        factory::DexType,
+    },
     SolanaTrade,
 };
 use solana_commitment_config::CommitmentConfig;
@@ -99,7 +102,7 @@ async fn pumpfun_sniper_trade_with_shreds(trade_info: PumpFunTradeEvent) -> AnyR
         input_token_type: TradeTokenType::SOL,
         mint: mint_pubkey,
         input_token_amount: buy_sol_amount,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpFun(PumpFunParams::from_dev_trade(
             trade_info.mint,
@@ -141,10 +144,14 @@ async fn pumpfun_sniper_trade_with_shreds(trade_info: PumpFunTradeEvent) -> AnyR
         output_token_type: TradeTokenType::SOL,
         mint: mint_pubkey,
         input_token_amount: amount_token,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         with_tip: false,
-        extension_params: DexParamEnum::PumpFun(PumpFunParams::immediate_sell(trade_info.creator_vault, trade_info.token_program, true)),
+        extension_params: DexParamEnum::PumpFun(PumpFunParams::immediate_sell(
+            trade_info.creator_vault,
+            trade_info.token_program,
+            true,
+        )),
         address_lookup_table_account: None,
         wait_transaction_confirmed: true,
         create_output_token_ata: true,
@@ -152,7 +159,7 @@ async fn pumpfun_sniper_trade_with_shreds(trade_info: PumpFunTradeEvent) -> AnyR
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.sell(sell_params).await?;

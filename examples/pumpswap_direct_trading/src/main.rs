@@ -1,7 +1,13 @@
 use sol_trade_sdk::{
-    SolanaTrade, TradeTokenType, common::{
-        AnyResult, TradeConfig, fast_fn::get_associated_token_address_with_program_id_fast_use_seed
-    }, swqos::SwqosConfig, trading::{core::params::{PumpSwapParams, DexParamEnum}, factory::DexType}
+    common::{
+        fast_fn::get_associated_token_address_with_program_id_fast_use_seed, AnyResult, TradeConfig,
+    },
+    swqos::SwqosConfig,
+    trading::{
+        core::params::{DexParamEnum, PumpSwapParams},
+        factory::DexType,
+    },
+    SolanaTrade, TradeTokenType,
 };
 use solana_commitment_config::CommitmentConfig;
 use solana_sdk::signature::Keypair;
@@ -29,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         input_token_type: TradeTokenType::SOL,
         mint: mint_pubkey,
         input_token_amount: buy_sol_amount,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpSwap(
             PumpSwapParams::from_pool_address_by_rpc(&client.rpc, &pool).await?,
@@ -52,7 +58,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rpc = client.rpc.clone();
     let payer = client.payer.pubkey();
     let program_id = sol_trade_sdk::constants::TOKEN_PROGRAM_2022;
-    let account = get_associated_token_address_with_program_id_fast_use_seed(&payer, &mint_pubkey, &program_id, client.use_seed_optimize);
+    let account = get_associated_token_address_with_program_id_fast_use_seed(
+        &payer,
+        &mint_pubkey,
+        &program_id,
+        client.use_seed_optimize,
+    );
     let balance = rpc.get_token_account_balance(&account).await?;
     let amount_token = balance.amount.parse::<u64>().unwrap();
     let sell_params = sol_trade_sdk::TradeSellParams {
@@ -60,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         output_token_type: TradeTokenType::SOL,
         mint: mint_pubkey,
         input_token_amount: amount_token,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         with_tip: false,
         extension_params: DexParamEnum::PumpSwap(
@@ -73,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.sell(sell_params).await?;

@@ -33,6 +33,7 @@ members = [
     "examples/cli_trading",
     "examples/gas_fee_strategy",
     "examples/meteora_damm_v2_direct_trading",
+    "examples/pumpfun_copy_trading_v2",
 ]
 
 [lib]

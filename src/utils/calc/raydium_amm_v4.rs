@@ -12,7 +12,7 @@ use crate::instruction::utils::raydium_amm_v4::accounts::{
 /// The calculated trading fee
 fn compute_trading_fee(amount: u64, fee_rate: u64, fee_denominator: u64) -> u64 {
     let numerator = (amount as u128) * (fee_rate as u128);
-    ((numerator + fee_denominator as u128 - 1) / fee_denominator as u128) as u64
+    numerator.div_ceil(fee_denominator as u128) as u64
 }
 
 /// Computes protocol or fund fee using floor division.

@@ -1,5 +1,5 @@
 use crate::{
-    constants::trade::trade::DEFAULT_SLIPPAGE,
+    constants::trade::DEFAULT_SLIPPAGE,
     instruction::utils::pumpswap::{
         accounts, fee_recipient_ata, get_user_volume_accumulator_pda, BUY_DISCRIMINATOR,
         SELL_DISCRIMINATOR,

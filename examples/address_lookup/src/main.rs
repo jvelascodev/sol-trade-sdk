@@ -1,9 +1,12 @@
 use sol_trade_sdk::common::address_lookup::fetch_address_lookup_table_account;
-use sol_trade_sdk::common::{gas_fee_strategy, GasFeeStrategy, TradeConfig};
+use sol_trade_sdk::common::{GasFeeStrategy, TradeConfig};
 use sol_trade_sdk::{
     common::AnyResult,
     swqos::SwqosConfig,
-    trading::{core::params::{PumpFunParams, DexParamEnum}, factory::DexType},
+    trading::{
+        core::params::{DexParamEnum, PumpFunParams},
+        factory::DexType,
+    },
     SolanaTrade,
 };
 use solana_commitment_config::CommitmentConfig;
@@ -135,7 +138,7 @@ async fn pumpfun_copy_trade_with_grpc(trade_info: PumpFunTradeEvent) -> AnyResul
         input_token_type: sol_trade_sdk::TradeTokenType::SOL,
         mint: mint_pubkey,
         input_token_amount: buy_sol_amount,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpFun(PumpFunParams::from_trade(
             trade_info.bonding_curve,
@@ -151,14 +154,14 @@ async fn pumpfun_copy_trade_with_grpc(trade_info: PumpFunTradeEvent) -> AnyResul
             trade_info.fee_recipient,
             trade_info.token_program,
         )),
-        address_lookup_table_account: address_lookup_table_account,
+        address_lookup_table_account,
         wait_transaction_confirmed: true,
         create_input_token_ata: false,
         close_input_token_ata: false,
         create_mint_ata: true,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.buy(buy_params).await?;

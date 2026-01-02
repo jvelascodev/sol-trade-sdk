@@ -13,7 +13,7 @@ use crate::instruction::utils::raydium_cpmm::accounts::{
 #[inline(always)]
 fn compute_trading_fee(amount: u64, fee_rate: u64) -> u64 {
     let numerator = (amount as u128) * (fee_rate as u128);
-    ((numerator + FEE_RATE_DENOMINATOR_VALUE - 1) / FEE_RATE_DENOMINATOR_VALUE) as u64
+    numerator.div_ceil(FEE_RATE_DENOMINATOR_VALUE) as u64
 }
 
 /// Computes protocol or fund fee using floor division.
@@ -41,7 +41,7 @@ fn compute_protocol_fund_fee(amount: u64, fee_rate: u64) -> u64 {
 #[inline(always)]
 fn compute_creator_fee_new(amount: u64, fee_rate: u64) -> u64 {
     let numerator = (amount as u128) * (fee_rate as u128);
-    ((numerator + FEE_RATE_DENOMINATOR_VALUE - 1) / FEE_RATE_DENOMINATOR_VALUE) as u64
+    numerator.div_ceil(FEE_RATE_DENOMINATOR_VALUE) as u64
 }
 
 /// Parameters for computing swap amounts and fees.
@@ -96,6 +96,7 @@ pub struct SwapResult {
 ///
 /// # Returns
 /// A `SwapResult` containing all swap calculations and fees
+#[allow(clippy::too_many_arguments)]
 #[inline]
 fn swap_base_input(
     input_amount: u64,

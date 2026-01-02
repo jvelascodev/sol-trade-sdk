@@ -112,7 +112,7 @@ static TX_BUILDER_POOL: Lazy<Arc<ArrayQueue<PreallocatedTxBuilder>>> = Lazy::new
 pub fn acquire_builder() -> PreallocatedTxBuilder {
     TX_BUILDER_POOL
         .pop()
-        .unwrap_or_else(|| PreallocatedTxBuilder::new())
+        .unwrap_or_else(PreallocatedTxBuilder::new)
 }
 
 /// 🚀 归还构建器到池
@@ -130,6 +130,12 @@ pub fn get_pool_stats() -> (usize, usize) {
 /// 🚀 RAII 构建器包装器 (自动归还)
 pub struct TxBuilderGuard {
     builder: Option<PreallocatedTxBuilder>,
+}
+
+impl Default for TxBuilderGuard {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TxBuilderGuard {

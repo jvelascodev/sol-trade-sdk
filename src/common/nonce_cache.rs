@@ -21,17 +21,14 @@ pub async fn fetch_nonce_info(
     nonce_account: Pubkey,
 ) -> Option<DurableNonceInfo> {
     match rpc.get_account(&nonce_account).await {
-        Ok(account) => match account.state() {
-            Ok(Versions::Current(state)) => {
-                if let State::Initialized(data) = *state {
-                    let blockhash = data.durable_nonce.as_hash();
-                    return Some(DurableNonceInfo {
-                        nonce_account: Some(nonce_account),
-                        current_nonce: Some(*blockhash),
-                    });
-                }
+        Ok(account) => if let Ok(Versions::Current(state)) = account.state() {
+            if let State::Initialized(data) = *state {
+                let blockhash = data.durable_nonce.as_hash();
+                return Some(DurableNonceInfo {
+                    nonce_account: Some(nonce_account),
+                    current_nonce: Some(*blockhash),
+                });
             }
-            _ => (),
         },
         Err(e) => {
             error!("Failed to get nonce account information: {:?}", e);

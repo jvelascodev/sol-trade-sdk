@@ -74,22 +74,23 @@ impl BondingCurveAccount {
         let account = if bonding_curve != Pubkey::default() {
             bonding_curve
         } else {
-            get_bonding_curve_pda(&mint).unwrap()
+            get_bonding_curve_pda(mint).unwrap()
         };
         Self {
             discriminator: 0,
-            account: account,
+            account,
             virtual_token_reserves: INITIAL_VIRTUAL_TOKEN_RESERVES - dev_token_amount,
             virtual_sol_reserves: INITIAL_VIRTUAL_SOL_RESERVES + dev_sol_amount,
             real_token_reserves: INITIAL_REAL_TOKEN_RESERVES - dev_token_amount,
             real_sol_reserves: dev_sol_amount,
             token_total_supply: TOKEN_TOTAL_SUPPLY,
             complete: false,
-            creator: creator,
-            is_mayhem_mode: is_mayhem_mode,
+            creator,
+            is_mayhem_mode,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_trade(
         bonding_curve: Pubkey,
         mint: Pubkey,
@@ -107,15 +108,15 @@ impl BondingCurveAccount {
         };
         Self {
             discriminator: 0,
-            account: account,
-            virtual_token_reserves: virtual_token_reserves,
-            virtual_sol_reserves: virtual_sol_reserves,
-            real_token_reserves: real_token_reserves,
-            real_sol_reserves: real_sol_reserves,
+            account,
+            virtual_token_reserves,
+            virtual_sol_reserves,
+            real_token_reserves,
+            real_sol_reserves,
             token_total_supply: TOKEN_TOTAL_SUPPLY,
             complete: false,
-            creator: creator,
-            is_mayhem_mode: is_mayhem_mode,
+            creator,
+            is_mayhem_mode,
         }
     }
 
@@ -242,7 +243,7 @@ impl BondingCurveAccount {
     pub fn get_token_price(&self) -> f64 {
         let v_sol = self.virtual_sol_reserves as f64 / 100_000_000.0;
         let v_tokens = self.virtual_token_reserves as f64 / 100_000.0;
-        let token_price = v_sol / v_tokens;
-        token_price
+
+        v_sol / v_tokens
     }
 }

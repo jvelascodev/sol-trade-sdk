@@ -1,7 +1,7 @@
 use sol_trade_sdk::common::spl_associated_token_account::get_associated_token_address;
 use sol_trade_sdk::common::TradeConfig;
-use sol_trade_sdk::constants::{WSOL_TOKEN_ACCOUNT, USDC_TOKEN_ACCOUNT};
-use sol_trade_sdk::trading::core::params::{RaydiumCpmmParams, DexParamEnum};
+use sol_trade_sdk::constants::{USDC_TOKEN_ACCOUNT, WSOL_TOKEN_ACCOUNT};
+use sol_trade_sdk::trading::core::params::{DexParamEnum, RaydiumCpmmParams};
 use sol_trade_sdk::trading::factory::DexType;
 use sol_trade_sdk::TradeTokenType;
 use sol_trade_sdk::{common::AnyResult, swqos::SwqosConfig, SolanaTrade};
@@ -134,7 +134,7 @@ async fn raydium_cpmm_copy_trade_with_grpc(trade_info: RaydiumCpmmSwapEvent) -> 
 
     let buy_params =
         RaydiumCpmmParams::from_pool_address_by_rpc(&client.rpc, &trade_info.pool_state).await?;
-    
+
     let is_wsol = trade_info.input_token_mint == sol_trade_sdk::constants::WSOL_TOKEN_ACCOUNT
         || trade_info.output_token_mint == sol_trade_sdk::constants::WSOL_TOKEN_ACCOUNT;
 
@@ -145,8 +145,8 @@ async fn raydium_cpmm_copy_trade_with_grpc(trade_info: RaydiumCpmmSwapEvent) -> 
         dex_type: DexType::RaydiumCpmm,
         input_token_type: if is_wsol { TradeTokenType::SOL } else { TradeTokenType::USDC },
         mint: mint_pubkey,
-        input_token_amount: input_token_amount,
-        slippage_basis_points: slippage_basis_points,
+        input_token_amount,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::RaydiumCpmm(buy_params),
         address_lookup_table_account: None,
@@ -180,7 +180,7 @@ async fn raydium_cpmm_copy_trade_with_grpc(trade_info: RaydiumCpmmSwapEvent) -> 
         output_token_type: if is_wsol { TradeTokenType::SOL } else { TradeTokenType::USDC },
         mint: mint_pubkey,
         input_token_amount: amount_token,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         with_tip: false,
         extension_params: DexParamEnum::RaydiumCpmm(sell_params),
@@ -191,7 +191,7 @@ async fn raydium_cpmm_copy_trade_with_grpc(trade_info: RaydiumCpmmSwapEvent) -> 
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.sell(sell_params).await?;

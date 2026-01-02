@@ -2,7 +2,10 @@ use sol_trade_sdk::common::fast_fn::get_associated_token_address_with_program_id
 use sol_trade_sdk::{
     common::AnyResult,
     swqos::SwqosConfig,
-    trading::{core::params::{RaydiumAmmV4Params, DexParamEnum}, factory::DexType},
+    trading::{
+        core::params::{DexParamEnum, RaydiumAmmV4Params},
+        factory::DexType,
+    },
     SolanaTrade,
 };
 use sol_trade_sdk::{
@@ -142,14 +145,7 @@ async fn raydium_amm_v4_copy_trade_with_grpc(trade_info: RaydiumAmmV4SwapEvent) 
     );
 
     let gas_fee_strategy = sol_trade_sdk::common::GasFeeStrategy::new();
-    gas_fee_strategy.set_global_fee_strategy(
-        150000,
-        150000,
-        500000,
-        500000,
-        0.001,
-        0.001,
-    );
+    gas_fee_strategy.set_global_fee_strategy(150000, 150000, 500000, 500000, 0.001, 0.001);
 
     // Buy tokens
     println!("Buying tokens from Raydium_amm_v4...");
@@ -160,8 +156,8 @@ async fn raydium_amm_v4_copy_trade_with_grpc(trade_info: RaydiumAmmV4SwapEvent) 
         dex_type: DexType::RaydiumAmmV4,
         input_token_type: if is_wsol { TradeTokenType::WSOL } else { TradeTokenType::USDC },
         mint: mint_pubkey,
-        input_token_amount: input_token_amount,
-        slippage_basis_points: slippage_basis_points,
+        input_token_amount,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::RaydiumAmmV4(params),
         address_lookup_table_account: None,
@@ -198,7 +194,7 @@ async fn raydium_amm_v4_copy_trade_with_grpc(trade_info: RaydiumAmmV4SwapEvent) 
         output_token_type: if is_wsol { TradeTokenType::WSOL } else { TradeTokenType::USDC },
         mint: mint_pubkey,
         input_token_amount: amount_token,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         with_tip: false,
         extension_params: DexParamEnum::RaydiumAmmV4(params),
@@ -209,7 +205,7 @@ async fn raydium_amm_v4_copy_trade_with_grpc(trade_info: RaydiumAmmV4SwapEvent) 
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.sell(sell_params).await?;

@@ -1,9 +1,10 @@
 use anyhow::Result;
 use sol_trade_sdk::{
     common::{AnyResult, TradeConfig},
-    swqos::{SwqosConfig, SwqosRegion},
+    swqos::SwqosConfig,
     trading::{
-        core::params::{PumpSwapParams, DexParamEnum}, factory::DexType, middleware::builtin::LoggingMiddleware,
+        core::params::{DexParamEnum, PumpSwapParams},
+        factory::DexType,
         InstructionMiddleware, MiddlewareManager,
     },
     SolanaTrade, TradeTokenType,
@@ -30,8 +31,8 @@ impl InstructionMiddleware for CustomMiddleware {
     fn process_protocol_instructions(
         &self,
         protocol_instructions: Vec<Instruction>,
-        protocol_name: String,
-        is_buy: bool,
+        _protocol_name: String,
+        _is_buy: bool,
     ) -> Result<Vec<Instruction>> {
         // do anything you want here
         // you can modify the instructions here
@@ -41,8 +42,8 @@ impl InstructionMiddleware for CustomMiddleware {
     fn process_full_instructions(
         &self,
         full_instructions: Vec<Instruction>,
-        protocol_name: String,
-        is_buy: bool,
+        _protocol_name: String,
+        _is_buy: bool,
     ) -> Result<Vec<Instruction>> {
         // do anything you want here
         // you can modify the instructions here
@@ -88,7 +89,7 @@ async fn test_middleware() -> AnyResult<()> {
         input_token_type: TradeTokenType::WSOL,
         mint: mint_pubkey,
         input_token_amount: buy_sol_cost,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpSwap(
             PumpSwapParams::from_pool_address_by_rpc(&client.rpc, &pool_address).await?,
@@ -100,7 +101,7 @@ async fn test_middleware() -> AnyResult<()> {
         create_mint_ata: true,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.buy(buy_params).await?;

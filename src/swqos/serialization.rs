@@ -26,8 +26,7 @@ impl ZeroAllocSerializer {
 
         // 预分配缓冲区
         for _ in 0..pool_size {
-            let mut buffer = Vec::with_capacity(buffer_size);
-            buffer.resize(buffer_size, 0);
+            let buffer = vec![0; buffer_size];
             let _ = pool.push(buffer);
         }
 
@@ -40,8 +39,7 @@ impl ZeroAllocSerializer {
     pub fn serialize_zero_alloc<T: serde::Serialize>(&self, data: &T, _label: &str) -> Result<Vec<u8>> {
         // 尝试从池中获取缓冲区
         let mut buffer = self.buffer_pool.pop().unwrap_or_else(|| {
-            let mut buf = Vec::with_capacity(self.buffer_size);
-            buf.resize(self.buffer_size, 0);
+            let buf = vec![0; self.buffer_size];
             buf
         });
 

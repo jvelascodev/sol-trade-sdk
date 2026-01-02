@@ -6,19 +6,19 @@ use solana_sdk::{
 };
 use std::{sync::Arc, time::Instant};
 
+use super::{params::SwapParams, traits::InstructionBuilder};
+use crate::swqos::TradeType;
 use crate::{
     common::{nonce_cache::DurableNonceInfo, GasFeeStrategy, SolanaRpcClient},
     perf::syscall_bypass::SystemCallBypassManager,
     trading::core::{
         async_executor::execute_parallel,
-        execution::{ExecutionPath, InstructionProcessor, Prefetch},
+        execution::{InstructionProcessor, Prefetch},
         traits::TradeExecutor,
     },
     trading::MiddlewareManager,
 };
 use once_cell::sync::Lazy;
-use crate::swqos::TradeType;
-use super::{params::SwapParams, traits::InstructionBuilder};
 
 /// 🚀 全局系统调用绕过管理器
 static SYSCALL_BYPASS: Lazy<SystemCallBypassManager> = Lazy::new(|| {
@@ -44,11 +44,15 @@ impl GenericTradeExecutor {
 
 #[async_trait::async_trait]
 impl TradeExecutor for GenericTradeExecutor {
-    async fn swap(&self, params: SwapParams) -> Result<(bool, Vec<Signature>, Option<anyhow::Error>)> {
+    async fn swap(
+        &self,
+        params: SwapParams,
+    ) -> Result<(bool, Vec<Signature>, Option<anyhow::Error>)> {
         let total_start = Instant::now();
 
         // 判断买卖方向
-        let is_buy = params.trade_type == TradeType::Buy || params.trade_type == TradeType::CreateAndBuy;
+        let is_buy =
+            params.trade_type == TradeType::Buy || params.trade_type == TradeType::CreateAndBuy;
 
         // CPU 预取
         Prefetch::keypair(&params.payer);
@@ -162,7 +166,7 @@ impl TradeExecutor for GenericTradeExecutor {
                 total_elapsed.as_micros()
             );
         }
-        
+
         #[cfg(not(feature = "perf-trace"))]
         let _ = (build_elapsed, before_submit_elapsed, send_elapsed, total_elapsed);
 
@@ -175,6 +179,7 @@ impl TradeExecutor for GenericTradeExecutor {
 }
 
 /// 🔧 修复：Simulate模式返回Vec<Signature>（单个RPC模拟）
+#[allow(clippy::too_many_arguments)]
 async fn simulate_transaction(
     rpc: Option<Arc<SolanaRpcClient>>,
     payer: Arc<Keypair>,
@@ -234,24 +239,23 @@ async fn simulate_transaction(
         .simulate_transaction_with_config(
             &transaction,
             RpcSimulateTransactionConfig {
-                sig_verify: false,               // Don't verify signature during simulation for speed
+                sig_verify: false, // Don't verify signature during simulation for speed
                 replace_recent_blockhash: false, // Use actual blockhash from transaction
                 commitment: Some(CommitmentConfig {
                     commitment: CommitmentLevel::Processed, // Use Processed level to get latest state
                 }),
                 encoding: Some(UiTransactionEncoding::Base64), // Base64 encoding
-                accounts: None,           // Don't return specific account states (can be specified if needed)
-                min_context_slot: None,   // Don't specify minimum context slot
+                accounts: None, // Don't return specific account states (can be specified if needed)
+                min_context_slot: None, // Don't specify minimum context slot
                 inner_instructions: true, // Enable inner instructions for debugging and detailed execution flow
             },
         )
         .await?;
 
-    let signature = transaction
+    let signature = *transaction
         .signatures
         .first()
-        .ok_or_else(|| anyhow::anyhow!("Transaction has no signatures"))?
-        .clone();
+        .ok_or_else(|| anyhow::anyhow!("Transaction has no signatures"))?;
 
     if let Some(err) = simulate_result.value.err {
         #[cfg(feature = "perf-trace")]

@@ -3,7 +3,10 @@ use sol_trade_sdk::{
         fast_fn::get_associated_token_address_with_program_id_fast_use_seed, AnyResult, TradeConfig,
     },
     swqos::SwqosConfig,
-    trading::{core::params::{PumpSwapParams, DexParamEnum}, factory::DexType},
+    trading::{
+        core::params::{DexParamEnum, PumpSwapParams},
+        factory::DexType,
+    },
     SolanaTrade, TradeTokenType,
 };
 use solana_commitment_config::CommitmentConfig;
@@ -32,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         input_token_type: TradeTokenType::WSOL,
         mint: mint_pubkey,
         input_token_amount: buy_sol_amount,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         extension_params: DexParamEnum::PumpSwap(
             PumpSwapParams::from_pool_address_by_rpc(&client.rpc, &pool).await?,
@@ -71,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         output_token_type: TradeTokenType::WSOL,
         mint: mint_pubkey,
         input_token_amount: amount_token,
-        slippage_basis_points: slippage_basis_points,
+        slippage_basis_points,
         recent_blockhash: Some(recent_blockhash),
         with_tip: false,
         extension_params: DexParamEnum::PumpSwap(
@@ -84,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         close_mint_token_ata: false,
         durable_nonce: None,
         fixed_output_token_amount: None,
-        gas_fee_strategy: gas_fee_strategy,
+        gas_fee_strategy,
         simulate: false,
     };
     client.sell(sell_params).await?;

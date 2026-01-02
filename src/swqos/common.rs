@@ -101,8 +101,8 @@ pub async fn poll_transaction_confirmation(
         // 优化：只在以下情况调用 getTransaction
         // 1. getSignatureStatuses 返回了错误
         // 2. 或者已经轮询了较长时间（超过10次，即10秒）
-        let should_get_transaction = status.value[0].as_ref().map(|s| s.err.is_some()).unwrap_or(false)
-            || poll_count >= 10;
+        let should_get_transaction =
+            status.value[0].as_ref().map(|s| s.err.is_some()).unwrap_or(false) || poll_count >= 10;
 
         if !should_get_transaction {
             sleep(interval).await;
@@ -128,11 +128,7 @@ pub async fn poll_transaction_confirmation(
             }
         };
 
-        let meta = tx_details.transaction.meta;
-        if meta.is_none() {
-            sleep(interval).await;
-        } else {
-            let meta = meta.unwrap();
+        if let Some(meta) = tx_details.transaction.meta {
             if meta.err.is_none() {
                 return Ok(txt_sig);
             } else {
@@ -161,47 +157,51 @@ pub async fn poll_transaction_confirmation(
                 let ui_err = meta.err.unwrap();
                 let tx_err: TransactionError =
                     serde_json::from_value(serde_json::to_value(&ui_err)?)?;
-                
+
                 // 直接使用Solana原生的InstructionError中的错误码
                 let mut code = 0u32;
                 let mut index = None;
-                match &tx_err {
-                    TransactionError::InstructionError(i, i_error) => {
-                        // 直接匹配所有InstructionError类型，Custom也是其中之一
-                        code = match i_error {
-                            solana_sdk::instruction::InstructionError::Custom(c) => *c,
-                            solana_sdk::instruction::InstructionError::GenericError => 1,
-                            solana_sdk::instruction::InstructionError::InvalidArgument => 2,
-                            solana_sdk::instruction::InstructionError::InvalidInstructionData => 3,
-                            solana_sdk::instruction::InstructionError::InvalidAccountData => 4,
-                            solana_sdk::instruction::InstructionError::AccountDataTooSmall => 5,
-                            solana_sdk::instruction::InstructionError::InsufficientFunds => 6,
-                            solana_sdk::instruction::InstructionError::IncorrectProgramId => 7,
-                            solana_sdk::instruction::InstructionError::MissingRequiredSignature => 8,
-                            solana_sdk::instruction::InstructionError::AccountAlreadyInitialized => 9,
-                            solana_sdk::instruction::InstructionError::UninitializedAccount => 10,
-                            _ => 999, // 其他未知错误
-                        };
-                        index = Some(*i);
-                    }
-                    _ => {}
+                if let TransactionError::InstructionError(i, i_error) = &tx_err {
+                    // 直接匹配所有InstructionError类型，Custom也是其中之一
+                    code = match i_error {
+                        solana_sdk::instruction::InstructionError::Custom(c) => *c,
+                        solana_sdk::instruction::InstructionError::GenericError => 1,
+                        solana_sdk::instruction::InstructionError::InvalidArgument => 2,
+                        solana_sdk::instruction::InstructionError::InvalidInstructionData => 3,
+                        solana_sdk::instruction::InstructionError::InvalidAccountData => 4,
+                        solana_sdk::instruction::InstructionError::AccountDataTooSmall => 5,
+                        solana_sdk::instruction::InstructionError::InsufficientFunds => 6,
+                        solana_sdk::instruction::InstructionError::IncorrectProgramId => 7,
+                        solana_sdk::instruction::InstructionError::MissingRequiredSignature => 8,
+                        solana_sdk::instruction::InstructionError::AccountAlreadyInitialized => 9,
+                        solana_sdk::instruction::InstructionError::UninitializedAccount => 10,
+                        _ => 999, // 其他未知错误
+                    };
+                    index = Some(*i);
                 }
-                
+
                 return Err(anyhow::Error::new(TradeError {
-                    code: code,
+                    code,
                     message: format!("{} {:?}", tx_err, error_msg),
                     instruction: index,
                 }));
             }
+        } else {
+            sleep(interval).await;
         }
     }
 }
 
-pub async fn send_nb_transaction(client: Client, endpoint: &str, auth_token: &str, transaction: &Transaction) -> Result<Signature, anyhow::Error> {
+pub async fn send_nb_transaction(
+    client: Client,
+    endpoint: &str,
+    auth_token: &str,
+    transaction: &Transaction,
+) -> Result<Signature, anyhow::Error> {
     // 序列化交易
     let serialized = bincode::serialize(transaction)
         .map_err(|e| anyhow::anyhow!("Transaction serialization failed: {}", e))?;
-    
+
     // Base64编码
     let encoded = STANDARD.encode(serialized);
 
@@ -222,24 +222,27 @@ pub async fn send_nb_transaction(client: Client, endpoint: &str, auth_token: &st
         .await
         .map_err(|e| anyhow::anyhow!("Request failed: {}", e))?;
 
-    let resp = response.json::<serde_json::Value>().await
+    let resp = response
+        .json::<serde_json::Value>()
+        .await
         .map_err(|e| anyhow::anyhow!("Response parsing failed: {}", e))?;
 
     if let Some(reason) = resp["reason"].as_str() {
         return Err(anyhow::anyhow!(reason.to_string()));
     }
 
-    let signature = resp["signature"].as_str()
+    let signature = resp["signature"]
+        .as_str()
         .ok_or_else(|| anyhow::anyhow!("Missing signature field in response"))?;
 
-    let signature = Signature::from_str(signature)
-        .map_err(|e| anyhow::anyhow!("Invalid signature: {}", e))?;
+    let signature =
+        Signature::from_str(signature).map_err(|e| anyhow::anyhow!("Invalid signature: {}", e))?;
 
     Ok(signature)
 }
 
 pub async fn serialize_and_encode(
-    transaction: &Vec<u8>,
+    transaction: &[u8],
     encoding: UiTransactionEncoding,
 ) -> Result<String> {
     let serialized = match encoding {

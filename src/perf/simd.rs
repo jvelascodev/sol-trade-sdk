@@ -14,6 +14,12 @@ pub struct SIMDMemory;
 
 impl SIMDMemory {
     /// 使用 SIMD 加速内存拷贝（256位 AVX2）
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// uses SIMD intrinsics. The caller must ensure that `dst` and `src` are
+    /// valid for at least `len` bytes and are non-overlapping.
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     pub unsafe fn copy_avx2(dst: *mut u8, src: *const u8, len: usize) {
@@ -34,6 +40,12 @@ impl SIMDMemory {
     }
 
     /// 使用通用方法拷贝内存（非x86_64架构）
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation.
+    /// The caller must ensure that `dst` and `src` are valid for at least `len` bytes
+    /// and are non-overlapping.
     #[cfg(not(target_arch = "x86_64"))]
     #[inline(always)]
     pub unsafe fn copy_avx2(dst: *mut u8, src: *const u8, len: usize) {
@@ -41,6 +53,12 @@ impl SIMDMemory {
     }
 
     /// 使用 SIMD 加速内存比较
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// uses SIMD intrinsics. The caller must ensure that `a` and `b` are valid
+    /// for at least `len` bytes.
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     pub unsafe fn compare_avx2(a: *const u8, b: *const u8, len: usize) -> bool {
@@ -71,6 +89,11 @@ impl SIMDMemory {
     }
 
     /// 使用通用方法比较内存（非x86_64架构）
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation.
+    /// The caller must ensure that `a` and `b` are valid for at least `len` bytes.
     #[cfg(not(target_arch = "x86_64"))]
     #[inline(always)]
     pub unsafe fn compare_avx2(a: *const u8, b: *const u8, len: usize) -> bool {
@@ -78,6 +101,12 @@ impl SIMDMemory {
     }
 
     /// 使用 SIMD 清零内存
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// uses SIMD intrinsics. The caller must ensure that `ptr` is valid for
+    /// at least `len` bytes.
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     pub unsafe fn zero_avx2(ptr: *mut u8, len: usize) {
@@ -98,6 +127,11 @@ impl SIMDMemory {
     }
 
     /// 使用通用方法清零内存（非x86_64架构）
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation.
+    /// The caller must ensure that `ptr` is valid for at least `len` bytes.
     #[cfg(not(target_arch = "x86_64"))]
     #[inline(always)]
     pub unsafe fn zero_avx2(ptr: *mut u8, len: usize) {
@@ -110,6 +144,12 @@ pub struct SIMDMath;
 
 impl SIMDMath {
     /// 批量 u64 加法 - x86_64 版本
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// uses SIMD intrinsics. The caller must ensure that `a`, `b`, and `result`
+    /// are valid for the same length.
     #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     pub unsafe fn add_u64_batch(a: &[u64], b: &[u64], result: &mut [u64]) {
@@ -235,7 +275,7 @@ impl SIMDHash {
     /// 批量计算 SHA256 哈希
     #[inline(always)]
     pub fn hash_batch_sha256(data: &[&[u8]]) -> Vec<[u8; 32]> {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         data.iter()
             .map(|item| {

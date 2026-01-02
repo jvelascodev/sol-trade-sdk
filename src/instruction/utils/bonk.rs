@@ -79,9 +79,9 @@ pub fn get_amount_in_net(
     share_fee_rate: u128,
 ) -> u64 {
     let amount_in_u128 = amount_in as u128;
-    let protocol_fee = (amount_in_u128 * protocol_fee_rate / 10000) as u128;
-    let platform_fee = (amount_in_u128 * platform_fee_rate / 10000) as u128;
-    let share_fee = (amount_in_u128 * share_fee_rate / 10000) as u128;
+    let protocol_fee = amount_in_u128 * protocol_fee_rate / 10000;
+    let platform_fee = amount_in_u128 * platform_fee_rate / 10000;
+    let share_fee = amount_in_u128 * share_fee_rate / 10000;
     amount_in_u128
         .checked_sub(protocol_fee)
         .unwrap()
@@ -91,6 +91,7 @@ pub fn get_amount_in_net(
         .unwrap() as u64
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_amount_in(
     amount_out: u64,
     protocol_fee_rate: u128,
@@ -123,6 +124,7 @@ pub fn get_amount_in(
     amount_in as u64
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_amount_out(
     amount_in: u64,
     protocol_fee_rate: u128,
@@ -135,9 +137,9 @@ pub fn get_amount_out(
     slippage_basis_points: u128,
 ) -> u64 {
     let amount_in_u128 = amount_in as u128;
-    let protocol_fee = (amount_in_u128 * protocol_fee_rate / 10000) as u128;
-    let platform_fee = (amount_in_u128 * platform_fee_rate / 10000) as u128;
-    let share_fee = (amount_in_u128 * share_fee_rate / 10000) as u128;
+    let protocol_fee = amount_in_u128 * protocol_fee_rate / 10000;
+    let platform_fee = amount_in_u128 * platform_fee_rate / 10000;
+    let share_fee = amount_in_u128 * share_fee_rate / 10000;
     let amount_in_net = amount_in_u128
         .checked_sub(protocol_fee)
         .unwrap()

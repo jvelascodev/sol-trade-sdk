@@ -1,16 +1,9 @@
 //! 执行模块
 
 use anyhow::Result;
-use solana_sdk::{
-    instruction::Instruction,
-    pubkey::Pubkey,
-    signature::Keypair,
-};
+use solana_sdk::{instruction::Instruction, pubkey::Pubkey, signature::Keypair};
 
-use crate::perf::{
-    hardware_optimizations::BranchOptimizer,
-    simd::SIMDMemory,
-};
+use crate::perf::{hardware_optimizations::BranchOptimizer, simd::SIMDMemory};
 
 /// 预取工具
 pub struct Prefetch;
@@ -61,18 +54,33 @@ impl Prefetch {
 pub struct MemoryOps;
 
 impl MemoryOps {
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// SIMD operations. The caller must ensure that `dst` and `src` are valid
+    /// for at least `len` bytes and are non-overlapping.
     #[inline(always)]
     pub unsafe fn copy(dst: *mut u8, src: *const u8, len: usize) {
         // 优先使用 AVX2 SIMD 加速
         SIMDMemory::copy_avx2(dst, src, len);
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// SIMD operations. The caller must ensure that `a` and `b` are valid
+    /// for at least `len` bytes.
     #[inline(always)]
     pub unsafe fn compare(a: *const u8, b: *const u8, len: usize) -> bool {
         // 优先使用 AVX2 SIMD 比较
         SIMDMemory::compare_avx2(a, b, len)
     }
 
+    /// # Safety
+    ///
+    /// This function is unsafe because it performs raw pointer manipulation and
+    /// SIMD operations. The caller must ensure that `ptr` is valid for at least
+    /// `len` bytes.
     #[inline(always)]
     pub unsafe fn zero(ptr: *mut u8, len: usize) {
         // 优先使用 AVX2 SIMD 清零

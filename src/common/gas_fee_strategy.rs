@@ -23,10 +23,18 @@ pub struct GasFeeStrategyValue {
     pub tip: f64,
 }
 
+pub type GasFeeStrategyMap =
+    HashMap<(SwqosType, TradeType, GasFeeStrategyType), GasFeeStrategyValue>;
+
 #[derive(Clone)]
 pub struct GasFeeStrategy {
-    strategies:
-        Arc<ArcSwap<HashMap<(SwqosType, TradeType, GasFeeStrategyType), GasFeeStrategyValue>>>,
+    strategies: Arc<ArcSwap<GasFeeStrategyMap>>,
+}
+
+impl Default for GasFeeStrategy {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl GasFeeStrategy {
@@ -86,6 +94,7 @@ impl GasFeeStrategy {
 
     /// 为多个服务类型添加高低费率策略，会移除(SwqosType,TradeType)的默认策略。
     /// Add high-low fee strategies for multiple service types, Will remove the default strategy of (SwqosType,TradeType)
+    #[allow(clippy::too_many_arguments)]
     pub fn set_high_low_fee_strategies(
         &self,
         swqos_types: &[SwqosType],
@@ -119,6 +128,7 @@ impl GasFeeStrategy {
 
     /// 为单个服务类型添加高低费率策略，会移除(SwqosType,TradeType)的默认策略。
     /// Add high-low fee strategy for a single service type, Will remove the default strategy of (SwqosType,TradeType)
+    #[allow(clippy::too_many_arguments)]
     pub fn set_high_low_fee_strategy(
         &self,
         swqos_type: SwqosType,
@@ -300,7 +310,7 @@ impl GasFeeStrategy {
     pub fn update_buy_tip(&self, buy_tip: f64) {
         self.strategies.rcu(|current_map| {
             let mut new_map = (**current_map).clone();
-            for ((swqos_type, trade_type, strategy_type), value) in new_map.iter_mut() {
+            for ((_swqos_type, trade_type, _strategy_type), value) in new_map.iter_mut() {
                 if *trade_type == TradeType::Buy {
                     value.tip = buy_tip;
                 }
@@ -314,7 +324,7 @@ impl GasFeeStrategy {
     pub fn update_sell_tip(&self, sell_tip: f64) {
         self.strategies.rcu(|current_map| {
             let mut new_map = (**current_map).clone();
-            for ((swqos_type, trade_type, strategy_type), value) in new_map.iter_mut() {
+            for ((_swqos_type, trade_type, _strategy_type), value) in new_map.iter_mut() {
                 if *trade_type == TradeType::Sell {
                     value.tip = sell_tip;
                 }
@@ -328,7 +338,7 @@ impl GasFeeStrategy {
     pub fn update_buy_cu_price(&self, buy_cu_price: u64) {
         self.strategies.rcu(|current_map| {
             let mut new_map = (**current_map).clone();
-            for ((swqos_type, trade_type, strategy_type), value) in new_map.iter_mut() {
+            for ((_swqos_type, trade_type, _strategy_type), value) in new_map.iter_mut() {
                 if *trade_type == TradeType::Buy {
                     value.cu_price = buy_cu_price;
                 }
@@ -342,7 +352,7 @@ impl GasFeeStrategy {
     pub fn update_sell_cu_price(&self, sell_cu_price: u64) {
         self.strategies.rcu(|current_map| {
             let mut new_map = (**current_map).clone();
-            for ((swqos_type, trade_type, strategy_type), value) in new_map.iter_mut() {
+            for ((_swqos_type, trade_type, _strategy_type), value) in new_map.iter_mut() {
                 if *trade_type == TradeType::Sell {
                     value.cu_price = sell_cu_price;
                 }

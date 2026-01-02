@@ -14,7 +14,7 @@ struct ComputeBudgetCacheKey {
 /// Global cache storing compute budget instructions
 /// Uses DashMap for high-performance lock-free concurrent access
 static COMPUTE_BUDGET_CACHE: Lazy<DashMap<ComputeBudgetCacheKey, SmallVec<[Instruction; 2]>>> =
-    Lazy::new(|| DashMap::new());
+    Lazy::new(DashMap::new);
 
 #[inline(always)]
 pub fn compute_budget_instructions(
@@ -23,8 +23,8 @@ pub fn compute_budget_instructions(
 ) -> SmallVec<[Instruction; 2]> {
     // Create cache key
     let cache_key = ComputeBudgetCacheKey {
-        unit_price: unit_price,
-        unit_limit: unit_limit,
+        unit_price,
+        unit_limit,
     };
 
     // Try to get from cache first

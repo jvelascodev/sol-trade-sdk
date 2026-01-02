@@ -109,7 +109,7 @@ impl InstructionBuilder for MeteoraDammV2InstructionBuilder {
         ];
         // Create instruction data
         let mut data = [0u8; 24];
-        data[..8].copy_from_slice(&SWAP_DISCRIMINATOR);
+        data[..8].copy_from_slice(SWAP_DISCRIMINATOR);
         data[8..16].copy_from_slice(&amount_in.to_le_bytes());
         data[16..24].copy_from_slice(&minimum_amount_out.to_le_bytes());
 
@@ -207,7 +207,7 @@ impl InstructionBuilder for MeteoraDammV2InstructionBuilder {
         ];
         // Create instruction data
         let mut data = [0u8; 24];
-        data[..8].copy_from_slice(&SWAP_DISCRIMINATOR);
+        data[..8].copy_from_slice(SWAP_DISCRIMINATOR);
         data[8..16].copy_from_slice(&params.input_amount.unwrap_or_default().to_le_bytes());
         data[16..24].copy_from_slice(&minimum_amount_out.to_le_bytes());
 

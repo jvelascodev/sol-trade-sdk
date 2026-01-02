@@ -1,5 +1,5 @@
 use crate::{
-    constants::trade::trade::DEFAULT_SLIPPAGE,
+    constants::trade::DEFAULT_SLIPPAGE,
     instruction::utils::raydium_amm_v4::{accounts, SWAP_BASE_IN_DISCRIMINATOR},
     trading::core::{
         params::{RaydiumAmmV4Params, SwapParams},
@@ -44,7 +44,7 @@ impl InstructionBuilder for RaydiumAmmV4InstructionBuilder {
         // ========================================
         // Trade calculation and account address preparation
         // ========================================
-        let is_base_in = protocol_params.coin_mint == crate::constants::WSOL_TOKEN_ACCOUNT 
+        let is_base_in = protocol_params.coin_mint == crate::constants::WSOL_TOKEN_ACCOUNT
             || protocol_params.coin_mint == crate::constants::USDC_TOKEN_ACCOUNT;
         let amount_in: u64 = params.input_amount.unwrap_or(0);
         let swap_result = compute_swap_amount(
@@ -62,7 +62,11 @@ impl InstructionBuilder for RaydiumAmmV4InstructionBuilder {
         let user_source_token_account =
             crate::common::fast_fn::get_associated_token_address_with_program_id_fast_use_seed(
                 &params.payer.pubkey(),
-                if is_wsol { &crate::constants::WSOL_TOKEN_ACCOUNT } else { &crate::constants::USDC_TOKEN_ACCOUNT },
+                if is_wsol {
+                    &crate::constants::WSOL_TOKEN_ACCOUNT
+                } else {
+                    &crate::constants::USDC_TOKEN_ACCOUNT
+                },
                 &crate::constants::TOKEN_PROGRAM,
                 params.open_seed_optimize,
             );
@@ -118,7 +122,7 @@ impl InstructionBuilder for RaydiumAmmV4InstructionBuilder {
         ];
         // Create instruction data
         let mut data = [0u8; 17];
-        data[..1].copy_from_slice(&SWAP_BASE_IN_DISCRIMINATOR);
+        data[..1].copy_from_slice(SWAP_BASE_IN_DISCRIMINATOR);
         data[1..9].copy_from_slice(&amount_in.to_le_bytes());
         data[9..17].copy_from_slice(&minimum_amount_out.to_le_bytes());
 
@@ -187,7 +191,11 @@ impl InstructionBuilder for RaydiumAmmV4InstructionBuilder {
         let user_destination_token_account =
             crate::common::fast_fn::get_associated_token_address_with_program_id_fast_use_seed(
                 &params.payer.pubkey(),
-                if is_wsol { &crate::constants::WSOL_TOKEN_ACCOUNT } else { &crate::constants::USDC_TOKEN_ACCOUNT },
+                if is_wsol {
+                    &crate::constants::WSOL_TOKEN_ACCOUNT
+                } else {
+                    &crate::constants::USDC_TOKEN_ACCOUNT
+                },
                 &crate::constants::TOKEN_PROGRAM,
                 params.open_seed_optimize,
             );
@@ -223,7 +231,7 @@ impl InstructionBuilder for RaydiumAmmV4InstructionBuilder {
         ];
         // Create instruction data
         let mut data = [0u8; 17];
-        data[..1].copy_from_slice(&SWAP_BASE_IN_DISCRIMINATOR);
+        data[..1].copy_from_slice(SWAP_BASE_IN_DISCRIMINATOR);
         data[1..9].copy_from_slice(&params.input_amount.unwrap_or(0).to_le_bytes());
         data[9..17].copy_from_slice(&minimum_amount_out.to_le_bytes());
 

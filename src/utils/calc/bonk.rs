@@ -28,9 +28,9 @@ pub fn get_buy_token_amount_from_sol_amount(
     let amount_in_u128 = amount_in as u128;
 
     // Calculate various fees deducted from input amount
-    let protocol_fee = (amount_in_u128 * accounts::PROTOCOL_FEE_RATE / 10000) as u128;
-    let platform_fee = (amount_in_u128 * accounts::PLATFORM_FEE_RATE / 10000) as u128;
-    let share_fee = (amount_in_u128 * accounts::SHARE_FEE_RATE / 10000) as u128;
+    let protocol_fee = amount_in_u128 * accounts::PROTOCOL_FEE_RATE / 10000 ;
+    let platform_fee = amount_in_u128 * accounts::PLATFORM_FEE_RATE / 10000 ;
+    let share_fee = amount_in_u128 * accounts::SHARE_FEE_RATE / 10000 ;
 
     // Calculate net input amount after deducting all fees
     let amount_in_net = amount_in_u128
@@ -92,9 +92,9 @@ pub fn get_sell_sol_amount_from_token_amount(
     let sol_amount_out = numerator.checked_div(denominator).unwrap();
 
     // Calculate various fees
-    let protocol_fee = (sol_amount_out * accounts::PROTOCOL_FEE_RATE / 10000) as u128;
-    let platform_fee = (sol_amount_out * accounts::PLATFORM_FEE_RATE / 10000) as u128;
-    let share_fee = (sol_amount_out * accounts::SHARE_FEE_RATE / 10000) as u128;
+    let protocol_fee = sol_amount_out * accounts::PROTOCOL_FEE_RATE / 10000 ;
+    let platform_fee = sol_amount_out * accounts::PLATFORM_FEE_RATE / 10000 ;
+    let share_fee = sol_amount_out * accounts::SHARE_FEE_RATE / 10000 ;
 
     // Net SOL amount after deducting fees
     let sol_amount_net = sol_amount_out

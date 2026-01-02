@@ -25,7 +25,7 @@ pub const fn compute_fee(amount: u128, fee_basis_points: u128) -> u128 {
 /// Returns the ceiling result of a/b
 #[inline(always)]
 pub const fn ceil_div(a: u128, b: u128) -> u128 {
-    (a + b - 1) / b
+    a.div_ceil(b)
 }
 
 /// Calculate buy amount with slippage protection
