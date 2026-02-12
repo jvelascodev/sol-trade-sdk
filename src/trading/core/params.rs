@@ -66,6 +66,7 @@ pub struct SwapParams {
     pub close_output_mint_ata: bool,
     pub fixed_output_amount: Option<u64>,
     pub gas_fee_strategy: GasFeeStrategy,
+    pub use_exact_sol_amount: Option<bool>,
     pub simulate: bool,
     /// Use exact SOL amount instructions (buy_exact_sol_in for PumpFun, buy_exact_quote_in for PumpSwap).
     /// When Some(true) or None (default), the exact SOL/quote amount is spent and slippage is applied to output tokens.

@@ -185,6 +185,8 @@ pub struct TradeBuyParams {
     pub fixed_output_token_amount: Option<u64>,
     /// Gas fee strategy
     pub gas_fee_strategy: GasFeeStrategy,
+    /// Whether to use exact SOL amount for the trade
+    pub use_exact_sol_amount: Option<bool>,
     /// Whether to simulate the transaction instead of executing it
     pub simulate: bool,
     /// Use exact SOL amount instructions (buy_exact_sol_in for PumpFun, buy_exact_quote_in for PumpSwap).
@@ -512,6 +514,7 @@ impl TradingClient {
             close_output_mint_ata: false,
             fixed_output_amount: params.fixed_output_token_amount,
             gas_fee_strategy: params.gas_fee_strategy,
+            use_exact_sol_amount: params.use_exact_sol_amount,
             simulate: params.simulate,
             use_exact_sol_amount: params.use_exact_sol_amount,
         };
@@ -622,6 +625,7 @@ impl TradingClient {
             close_output_mint_ata: params.close_output_token_ata,
             fixed_output_amount: params.fixed_output_token_amount,
             gas_fee_strategy: params.gas_fee_strategy,
+            use_exact_sol_amount: None,
             simulate: params.simulate,
             use_exact_sol_amount: None,
         };
